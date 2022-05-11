@@ -18,7 +18,7 @@ Win32GetWallClock() {
 }
 
 static HGLRC
-Win32OpenGLGetRenderingContext(HDC device_context) {
+Win32GetOpenGLRenderingContext(HDC device_context) {
     PIXELFORMATDESCRIPTOR desired_pixel_format = {};
     desired_pixel_format.nSize = sizeof(PIXELFORMATDESCRIPTOR);
     desired_pixel_format.nVersion = 1;
@@ -156,7 +156,7 @@ s32
 WinMain(HINSTANCE instance, HINSTANCE, LPSTR, s32) {
     HWND window = Win32CreateWindow(instance);
     HDC device_context = GetDC(window);
-    HGLRC gl_rendering_context = Win32OpenGLGetRenderingContext(device_context);
+    HGLRC gl_rendering_context = Win32GetOpenGLRenderingContext(device_context);
     if (!wglMakeCurrent(device_context, gl_rendering_context)) {
         INVALID_CODE_PATH;
     }
@@ -164,15 +164,6 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, s32) {
     if (!gladLoadGL()) {
         INVALID_CODE_PATH;
     }
-
-#ifdef PACMAN_DEBUG
-    RECT client_rect;
-    GetClientRect(window, &client_rect);
-    s32 window_width = client_rect.right - client_rect.left;
-    s32 window_height = client_rect.bottom - client_rect.top;
-    ASSERT(window_width == WINDOW_WIDTH);
-    ASSERT(window_height == WINDOW_HEIGHT);
-#endif
 
     GameInit(WINDOW_WIDTH, WINDOW_HEIGHT);
     Input input = {};

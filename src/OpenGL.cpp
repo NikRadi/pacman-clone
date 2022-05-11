@@ -63,7 +63,7 @@ CreateAndCompileShader(char *shader_code, GLenum shader_type) {
 }
 
 u32
-OpenGLCreateProgram() {
+CreateOpenGLProgram() {
     GLuint vertex_shader_id = CreateAndCompileShader(vertex_shader, GL_VERTEX_SHADER);
     GLuint fragment_shader_id = CreateAndCompileShader(fragment_shader, GL_FRAGMENT_SHADER);
     GLuint program_id = glCreateProgram();
@@ -83,7 +83,7 @@ OpenGLCreateProgram() {
 }
 
 Texture2D
-OpenGLLoadAndBindTexture(char *file_name) {
+LoadAndBindTexture(char *file_name) {
     File file = PlatformReadFile(file_name);
     void *buffer = file.buffer;
     BitmapFile *bmp = static_cast<BitmapFile *>(buffer);
@@ -120,4 +120,48 @@ void
 SetMatrix4Uniform(u32 program_id, char *name, Matrix4 m) {
     u32 location = glGetUniformLocation(program_id, name);
     SetMatrix4Uniform(location, m);
+}
+
+u32
+InitVAO(Texture2D texture, RectangleInt rect) {
+    u32 VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    f32 x1 = static_cast<f32>(rect.left) / texture.width;
+    f32 y1 = 1.0f - (static_cast<f32>(rect.top) / texture.height);
+    f32 x2 = x1 + (static_cast<f32>(rect.width) / texture.width);
+    f32 y2 = y1 - (static_cast<f32>(rect.height) / texture.height);
+
+    f32 vertices[] = {
+        -1.0f,  1.0f, x1, y1,
+         1.0f,  1.0f, x2, y1,
+        -1.0f, -1.0f, x1, y2,
+         1.0f, -1.0f, x2, y2
+    };
+
+    u32 VBO;
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), 0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void *) (2 * sizeof(f32)));
+    glEnableVertexAttribArray(1);
+
+    u32 indices[] = {
+        0, 1, 2,
+        1, 2, 3
+    };
+
+    u32 EBO;
+    glGenBuffers(1, &EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
+    return VAO;
 }

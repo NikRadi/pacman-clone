@@ -43,6 +43,9 @@ Matrix4
 Translate(Matrix4 matrix, Vector2Int translate);
 
 f32
+Abs(f32 a);
+
+f32
 Min(f32 a, f32 b);
 
 Vector2
@@ -62,6 +65,9 @@ operator+=(Vector2 &a, Vector2 b);
 
 Vector2
 operator*=(Vector2 &a, f32 b);
+
+bool
+operator==(Vector2 a, Vector2 b);
 
 bool
 operator==(Vector2Int a, Vector2Int b);
