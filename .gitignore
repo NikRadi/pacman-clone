@@ -1,0 +1,12 @@
+# Files
+pacman_debug.sln
+setup_msvc.bat
+*.swp
+
+# Folders
+bin/
+glad/
+obj/
+.vs/
+.vscode/
+
