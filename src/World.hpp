@@ -22,4 +22,7 @@ struct World {
 Entity
 CreateEntity(World *world);
 
+Entity
+MakeGhost(World *world, Transform transform, Sprite sprite);
+
 #endif // PACMAN_WORLD_HPP

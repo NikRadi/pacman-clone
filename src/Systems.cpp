@@ -25,7 +25,14 @@ UpdateAnimationSystem(World *world, AnimationSystem *system) {
             Sprite *sprite  = &world->sprites[i];
 
             sprite->vertex_array = system->vertex_arrays[animation->base_sprite_id + animation->current_sprite_id];
-            animation->current_sprite_id = (animation->current_sprite_id + 1) % animation->num_frames;
+            if (animation->is_reversed) {
+                animation->current_sprite_id -= 1;
+                animation->is_reversed = animation->current_sprite_id != 0;
+            }
+            else {
+                animation->current_sprite_id += 1;
+                animation->is_reversed = animation->current_sprite_id == animation->num_frames - 1;
+            }
         }
     }
 }

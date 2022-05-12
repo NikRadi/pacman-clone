@@ -50,6 +50,9 @@ GameInit(s32 window_width, s32 window_height) {
     animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN_2] = MakeVertexArray(texture, { 245, 48, 15, 15 });
     animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN_3] = MakeVertexArray(texture, { 261, 48, 15, 15 });
 
+    Sprite sprite;
+    sprite.texture = texture;
+
     Entity maze = CreateEntity(&world);
     world.entity_masks[maze.id] = MASK_TRANSFORM | MASK_SPRITE;
 
@@ -57,9 +60,8 @@ GameInit(s32 window_width, s32 window_height) {
     maze_transform->scale = { half_w, half_h };
     maze_transform->translate = { half_w, half_h };
 
-    Sprite *maze_sprite = &world.sprites[maze.id];
-    maze_sprite->texture = texture;
-    maze_sprite->vertex_array = MakeVertexArray(texture, { 1, 0, 224, 248 });
+    sprite.vertex_array = MakeVertexArray(texture, { 1, 0, 224, 248 });
+    world.sprites[maze.id] = sprite;
 
     for (u32 row = 0; row < MAZE_HEIGHT; ++row) {
         for (u32 col = 0; col < MAZE_WIDTH; ++col) {
@@ -72,9 +74,8 @@ GameInit(s32 window_width, s32 window_height) {
                 small_dot_transform->translate = cell_size * small_dot_cell + half_cell_size;
                 small_dot_transform->scale = cell_size * 0.3f;
 
-                Sprite *small_dot_sprite = &world.sprites[small_dot.id];
-                small_dot_sprite->texture = texture;
-                small_dot_sprite->vertex_array = MakeVertexArray(texture, { 227, 242, 4, 4 });
+                sprite.vertex_array = MakeVertexArray(texture, { 227, 242, 4, 4 });
+                world.sprites[small_dot.id] = sprite;
             }
             else if (MAZE[row][col] == D) {
                 Entity big_dot = CreateEntity(&world);
@@ -85,9 +86,8 @@ GameInit(s32 window_width, s32 window_height) {
                 big_dot_transform->translate = cell_size * big_dot_cell + half_cell_size;
                 big_dot_transform->scale = half_cell_size;
 
-                Sprite *big_dot_sprite = &world.sprites[big_dot.id];
-                big_dot_sprite->texture = texture;
-                big_dot_sprite->vertex_array = MakeVertexArray(texture, BIG_DOT_RECT);
+                sprite.vertex_array = MakeVertexArray(texture, BIG_DOT_RECT);
+                world.sprites[big_dot.id] = sprite;
 
                 Animation *big_dot_animation = &world.animations[big_dot.id];
                 big_dot_animation->base_sprite_id = SPRITE_ID_BIG_DOT_1;
@@ -97,70 +97,38 @@ GameInit(s32 window_width, s32 window_height) {
         }
     }
 
+    Transform transform;
+    transform.scale = cell_size;
+
     constexpr Vector2 BLINKY_STARTING_CELL = { 14.0f, 11.5f };
-    Entity blinky = CreateEntity(&world);
-    world.entity_masks[blinky.id] = MASK_TRANSFORM | MASK_SPRITE;
-
-    Transform *blinky_transform = &world.transforms[blinky.id];
-    blinky_transform->scale = cell_size;
-    blinky_transform->translate = cell_size * BLINKY_STARTING_CELL;
-
-    Sprite *blinky_sprite = &world.sprites[blinky.id];
-    blinky_sprite->texture = texture;
-    blinky_sprite->vertex_array = MakeVertexArray(texture, { 229, 64, 15, 15 });
-
+    transform.translate = cell_size * BLINKY_STARTING_CELL;
+    sprite.vertex_array = MakeVertexArray(texture, { 229, 64, 15, 15 });
+    MakeGhost(&world, transform, sprite);
 
     constexpr Vector2 PINKY_STARTING_CELL = { 14.0f, 14.5f };
-    Entity pinky = CreateEntity(&world);
-    world.entity_masks[pinky.id] = MASK_TRANSFORM | MASK_SPRITE;
-
-    Transform *pinky_transform = &world.transforms[pinky.id];
-    pinky_transform->scale = cell_size;
-    pinky_transform->translate = cell_size * PINKY_STARTING_CELL;
-
-    Sprite *pinky_sprite = &world.sprites[pinky.id];
-    pinky_sprite->texture = texture;
-    pinky_sprite->vertex_array = MakeVertexArray(texture, { 229, 80, 15, 15 });
-
+    transform.translate = cell_size * PINKY_STARTING_CELL;
+    sprite.vertex_array = MakeVertexArray(texture, { 229, 80, 15, 15 });
+    MakeGhost(&world, transform, sprite);
 
     constexpr Vector2 INKY_STARTING_CELL = { 12.0f, 14.5f };
-    Entity inky = CreateEntity(&world);
-    world.entity_masks[inky.id] = MASK_TRANSFORM | MASK_SPRITE;
-
-    Transform *inky_transform = &world.transforms[inky.id];
-    inky_transform->scale = cell_size;
-    inky_transform->translate = cell_size * INKY_STARTING_CELL;
-
-    Sprite *inky_sprite = &world.sprites[inky.id];
-    inky_sprite->texture = texture;
-    inky_sprite->vertex_array = MakeVertexArray(texture, { 229, 96, 15, 15 });
-
+    transform.translate = cell_size * INKY_STARTING_CELL;
+    sprite.vertex_array = MakeVertexArray(texture, { 229, 96, 15, 15 });
+    MakeGhost(&world, transform, sprite);
 
     constexpr Vector2 CLYDE_STARTING_CELL = { 16.0f, 14.5f };
-    Entity clyde = CreateEntity(&world);
-    world.entity_masks[clyde.id] = MASK_TRANSFORM | MASK_SPRITE;
-
-    Transform *clyde_transform = &world.transforms[clyde.id];
-    clyde_transform->scale = cell_size;
-    clyde_transform->translate = cell_size * CLYDE_STARTING_CELL;
-
-    Sprite *clyde_sprite = &world.sprites[clyde.id];
-    clyde_sprite->texture = texture;
-    clyde_sprite->vertex_array = MakeVertexArray(texture, { 229, 112, 15, 15 });
-
+    transform.translate = cell_size * CLYDE_STARTING_CELL;
+    sprite.vertex_array = MakeVertexArray(texture, { 229, 112, 15, 15 });
+    MakeGhost(&world, transform, sprite);
 
     constexpr Vector2 PACMAN_STARTING_CELL = { 14.0f, 23.5f };
     Entity pacman = CreateEntity(&world);
     world.entity_masks[pacman.id] = MASK_TRANSFORM | MASK_SPRITE | MASK_ANIMATION;
     pacman_system.pacman = pacman;
 
-    Transform *pacman_transform = &world.transforms[pacman.id];
-    pacman_transform->scale = cell_size;
-    pacman_transform->translate = cell_size * PACMAN_STARTING_CELL;
-
-    Sprite *pacman_sprite = &world.sprites[pacman.id];
-    pacman_sprite->texture = texture;
-    pacman_sprite->vertex_array = MakeVertexArray(texture, PACMAN_RECT);
+    transform.translate = cell_size * PACMAN_STARTING_CELL;
+    world.transforms[pacman.id] = transform;
+    sprite.vertex_array = MakeVertexArray(texture, PACMAN_RECT);
+    world.sprites[pacman.id] = sprite;
 
     Animation *pacman_animation = &world.animations[pacman.id];
     pacman_animation->base_sprite_id = SPRITE_ID_PACMAN_RIGHT_1;

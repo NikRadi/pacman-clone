@@ -25,6 +25,10 @@ struct Animation {
     u8 base_sprite_id;
     u8 current_sprite_id;
     u8 num_frames;
+
+    // Only used when num_frames > 2. If we have 3 sprites we should
+    // animate sprites 1, 2, 3, 2, 1, 2 and not 1, 2, 3, 1, 2, 3
+    u8 is_reversed;
     f32 seconds_since_last_frame;
     f32 seconds_between_frames;
 };
