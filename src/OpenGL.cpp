@@ -47,6 +47,9 @@ static char *fragment_shader =
     "";
 
 
+static u32 program_id;
+
+
 static u32
 CreateAndCompileShader(char *shader_code, GLenum shader_type) {
     GLuint shader_id = glCreateShader(shader_type);
@@ -62,11 +65,11 @@ CreateAndCompileShader(char *shader_code, GLenum shader_type) {
     return shader_id;
 }
 
-u32
+static void
 CreateOpenGLProgram() {
     GLuint vertex_shader_id = CreateAndCompileShader(vertex_shader, GL_VERTEX_SHADER);
     GLuint fragment_shader_id = CreateAndCompileShader(fragment_shader, GL_FRAGMENT_SHADER);
-    GLuint program_id = glCreateProgram();
+    program_id = glCreateProgram();
     glAttachShader(program_id, vertex_shader_id);
     glAttachShader(program_id, fragment_shader_id);
     glLinkProgram(program_id);
@@ -79,7 +82,15 @@ CreateOpenGLProgram() {
 
     glDeleteShader(vertex_shader_id);
     glDeleteShader(fragment_shader_id);
-    return program_id;
+}
+
+void
+OpenGLInit() {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    CreateOpenGLProgram();
+    glUseProgram(program_id);
 }
 
 Texture2D
@@ -112,22 +123,43 @@ LoadAndBindTexture(char *file_name) {
 }
 
 void
-SetMatrix4Uniform(u32 location, Matrix4 m) {
+SetMatrix4Uniform(char *name, Matrix4 m) {
+    u32 location = glGetUniformLocation(program_id, name);
     glUniformMatrix4fv(location, 1, GL_TRUE, m.data[0]);
 }
 
-void
-SetMatrix4Uniform(u32 program_id, char *name, Matrix4 m) {
-    u32 location = glGetUniformLocation(program_id, name);
-    SetMatrix4Uniform(location, m);
+VertexArray
+MakeVertexArray(Texture2D texture, RectangleInt rect) {
+    VertexArray vertex_array;
+
+    glGenVertexArrays(1, &vertex_array.id);
+    glBindVertexArray(vertex_array.id);
+
+    glGenBuffers(1, &vertex_array.vertex_buffer_id);
+    UpdateVertexBuffer(vertex_array.vertex_buffer_id, texture, rect);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), 0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void *) (2 * sizeof(f32)));
+    glEnableVertexAttribArray(1);
+
+    u32 indices[] = {
+        0, 1, 2,
+        1, 2, 3
+    };
+
+    u32 element_buffer;
+    glGenBuffers(1, &element_buffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+    glDeleteBuffers(1, &element_buffer);
+    return vertex_array;
 }
 
-u32
-InitVAO(Texture2D texture, RectangleInt rect) {
-    u32 VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
+void
+UpdateVertexBuffer(u32 vertex_buffer_id, Texture2D texture, RectangleInt rect) {
     f32 x1 = static_cast<f32>(rect.left) / texture.width;
     f32 y1 = 1.0f - (static_cast<f32>(rect.top) / texture.height);
     f32 x2 = x1 + (static_cast<f32>(rect.width) / texture.width);
@@ -140,28 +172,6 @@ InitVAO(Texture2D texture, RectangleInt rect) {
          1.0f, -1.0f, x2, y2
     };
 
-    u32 VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), 0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void *) (2 * sizeof(f32)));
-    glEnableVertexAttribArray(1);
-
-    u32 indices[] = {
-        0, 1, 2,
-        1, 2, 3
-    };
-
-    u32 EBO;
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glBindVertexArray(0);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-    return VAO;
 }

@@ -30,21 +30,9 @@ Translate(Matrix4 matrix, Vector2 translate) {
     return matrix;
 }
 
-Matrix4
-Translate(Matrix4 matrix, Vector2Int translate) {
-    matrix.data[0][3] += translate.x;
-    matrix.data[1][3] += translate.y;
-    return matrix;
-}
-
 f32
 Abs(f32 a) {
-    return (a < 0) ? -a : a;
-}
-
-f32
-Min(f32 a, f32 b) {
-    return (a < b) ? a : b;
+    return (a > 0) ? a : -a;
 }
 
 Vector2
@@ -58,30 +46,18 @@ operator*(Vector2 a, Vector2 b) {
 }
 
 Vector2
+operator*(Vector2Int a, Vector2 b) {
+    return { a.x * b.x, a.y * b.y };
+}
+
+Vector2
 operator*(Vector2 a, f32 b) {
     return { a.x * b, a.y * b };
 }
 
 Vector2
-operator/(Vector2 a, f32 b) {
-    return { a.x / b, a.y / b };
-}
-
-Vector2
-operator+=(Vector2 &a, Vector2 b) {
-    a = a + b;
-    return a;
-}
-
-Vector2
-operator*=(Vector2 &a, f32 b) {
-    a = a * b;
-    return a;
-}
-
-bool
-operator==(Vector2 a, Vector2 b) {
-    return a.x == b.x && a.y == b.y;
+operator*(f32 a, Vector2 b) {
+    return b * a;
 }
 
 bool

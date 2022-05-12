@@ -1,267 +1,182 @@
 #include "Game.hpp"
-#include "Math.hpp"
 #include "OpenGL.hpp"
+#include "Systems.hpp"
+#include "World.hpp"
 
 
-struct Entity {
-    u32 VAO;
-    Vector2 scale;
-    Vector2 translate;
-    bool is_active = true;
-};
+static World world;
+static AnimationSystem animation_system;
+static RenderSystem render_system;
+static PacmanSystem pacman_system;
 
-struct Pacman : public Entity {
-    s32 direction;
-    s32 next_direction;
-};
-
-template <class NumClips>
-struct Animation {
-    RectangleInt texture_coords[NumClips];
-    s32 current_clip = 0;
-};
-
-enum {
-    DIRECTION_NONE,
-    DIRECTION_LEFT,
-    DIRECTION_RIGHT,
-    DIRECTION_DOWN,
-    DIRECTION_UP,
-};
-
-enum {
-    d, // Small dot
-    D, // Big dot
-    E, // Empty
-    W, // Wall
-};
-
-
-constexpr static s32 MAZE_WIDTH = 28;
-constexpr static s32 MAZE_HEIGHT = 31;
-constexpr static u8 MAZE[MAZE_HEIGHT][MAZE_WIDTH] = {
-    W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,
-    W,d,d,d,d,d,d,d,d,d,d,d,d,W,W,d,d,d,d,d,d,d,d,d,d,d,d,W,
-    W,d,W,W,W,W,d,W,W,W,W,W,d,W,W,d,W,W,W,W,W,d,W,W,W,W,d,W,
-    W,D,W,W,W,W,d,W,W,W,W,W,d,W,W,d,W,W,W,W,W,d,W,W,W,W,D,W,
-    W,d,W,W,W,W,d,W,W,W,W,W,d,W,W,d,W,W,W,W,W,d,W,W,W,W,d,W,
-    W,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,W,
-    W,d,W,W,W,W,d,W,W,d,W,W,W,W,W,W,W,W,d,W,W,d,W,W,W,W,d,W,
-    W,d,W,W,W,W,d,W,W,d,W,W,W,W,W,W,W,W,d,W,W,d,W,W,W,W,d,W,
-    W,d,d,d,d,d,d,W,W,d,d,d,d,W,W,d,d,d,d,W,W,d,d,d,d,d,d,W,
-    W,W,W,W,W,W,d,W,W,W,W,W,E,W,W,E,W,W,W,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,W,W,W,E,W,W,E,W,W,W,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,E,E,E,E,E,E,E,E,E,E,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,E,E,E,E,E,E,E,E,E,E,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,E,E,E,E,E,E,E,E,E,E,W,W,d,W,W,W,W,W,W,
-    E,E,E,E,E,E,d,E,E,E,E,E,E,E,E,E,E,E,E,E,E,d,E,E,E,E,E,E,
-    W,W,W,W,W,W,d,W,W,E,E,E,E,E,E,E,E,E,E,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,E,E,E,E,E,E,E,E,E,E,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,E,E,E,E,E,E,E,E,E,E,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,E,W,W,W,W,W,W,W,W,E,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,E,W,W,W,W,W,W,W,W,E,W,W,d,W,W,W,W,W,W,
-    W,d,d,d,d,d,d,d,d,d,d,d,d,W,W,d,d,d,d,d,d,d,d,d,d,d,d,W,
-    W,d,W,W,W,W,d,W,W,W,W,W,d,W,W,d,W,W,W,W,W,d,W,W,W,W,d,W,
-    W,d,W,W,W,W,d,W,W,W,W,W,d,W,W,d,W,W,W,W,W,d,W,W,W,W,d,W,
-    W,D,d,d,W,W,d,d,d,d,d,d,d,E,E,d,d,d,d,d,d,d,W,W,d,d,D,W,
-    W,W,W,d,W,W,d,W,W,d,W,W,W,W,W,W,W,W,d,W,W,d,W,W,d,W,W,W,
-    W,W,W,d,W,W,d,W,W,d,W,W,W,W,W,W,W,W,d,W,W,d,W,W,d,W,W,W,
-    W,d,d,d,d,d,d,W,W,d,d,d,d,W,W,d,d,d,d,W,W,d,d,d,d,d,d,W,
-    W,d,W,W,W,W,W,W,W,W,W,W,d,W,W,d,W,W,W,W,W,W,W,W,W,W,d,W,
-    W,d,W,W,W,W,W,W,W,W,W,W,d,W,W,d,W,W,W,W,W,W,W,W,W,W,d,W,
-    W,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,W,
-    W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W
-};
-
-static constexpr RectangleInt MAZE_RECT = { 1, 0, 224, 248 };
-static constexpr RectangleInt PACMAN_RECT = { 261, 0, 15, 15 };
-static constexpr RectangleInt SMALL_DOT_RECT = { 227, 242, 4, 4 };
-static constexpr RectangleInt BIG_DOT_RECT = { 233, 240, 8, 8 };
-
-static constexpr f32 MOVEMENT_PRECISION = 2.0f;
-static constexpr s32 PACMAN_SPEED = 150;
-static constexpr s32 MAX_ENTITIES = 1048;
-
-static s32 num_entities = 0;
-static s32 num_dots = 0;
-static u32 model_location;
-static Vector2 cell_size;
-
-static Pacman pacman;
-static Entity maze;
-static Entity dots[1048]; // Just picked some number
-static Entity *entities[MAX_ENTITIES];
-
-
-static void
-AddEntity(Entity *entity) {
-    ASSERT(num_entities < MAX_ENTITIES);
-    entities[num_entities] = entity;
-    num_entities += 1;
-}
-
-static Vector2Int
-ToMazeCoordinates(Vector2 position) {
-    Vector2Int maze_coordinates;
-    maze_coordinates.x = static_cast<s32>(position.x / cell_size.x);
-    maze_coordinates.y = static_cast<s32>(position.y / cell_size.y);
-    return maze_coordinates;
-}
 
 void
 GameInit(s32 window_width, s32 window_height) {
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    u32 program_id = CreateOpenGLProgram();
-    glUseProgram(program_id);
-    model_location = glGetUniformLocation(program_id, "model");
+    OpenGLInit();
 
     f32 w = static_cast<f32>(window_width);
     f32 h = static_cast<f32>(window_height);
     f32 half_w = w / 2.0f;
     f32 half_h = h / 2.0f;
-    cell_size.x = w / MAZE_WIDTH;
-    cell_size.y = h / MAZE_HEIGHT;
+    Vector2 cell_size = { w / MAZE_WIDTH, h / MAZE_HEIGHT };
+    Vector2 half_cell_size = cell_size * 0.5f;
 
     Matrix4 projection = Orthographic(0.0f, w, 0.0f, h);
-    SetMatrix4Uniform(program_id, "projection", projection);
+    SetMatrix4Uniform("projection", projection);
 
     char *spritesheet_path = "C:\\Users\\nik\\Desktop\\pacman\\sprites\\spritesheet.bmp";
     Texture2D texture = LoadAndBindTexture(spritesheet_path);
 
-    maze.VAO = InitVAO(texture, MAZE_RECT);
-    maze.scale = { half_w, half_h };
-    maze.translate = { half_w, half_h };
-    AddEntity(&maze);
+    world = {};
+    render_system.window_height = window_height;
+    pacman_system.cell_size = cell_size;
+    pacman_system.half_cell_size = half_cell_size;
 
-    for (s32 row = 0; row < MAZE_HEIGHT; ++row) {
-        for (s32 col = 0; col < MAZE_WIDTH; ++col) {
-            bool is_small_dot = MAZE[row][col] == d;
-            bool is_big_dot = MAZE[row][col] == D;
-            if (is_small_dot || is_big_dot) {
-                Entity dot;
-                dot.translate = { cell_size.x * col, cell_size.y * row };
-                dot.translate += cell_size * 0.5f;
-                if (is_small_dot) {
-                    dot.VAO = InitVAO(texture, SMALL_DOT_RECT);
-                    dot.scale = cell_size * 0.2f;
-                }
-                else {
-                    dot.VAO = InitVAO(texture, BIG_DOT_RECT);
-                    dot.scale = cell_size * 0.5f;
-                }
-                
-                dots[num_dots] = dot;
-                AddEntity(&dots[num_dots]);
-                num_dots += 1;
+    // These constexpr variables are defined here because they are used later also
+    constexpr RectangleInt BIG_DOT_RECT = { 233, 240, 8, 8 };
+    constexpr RectangleInt PACMAN_RECT = { 261, 0, 15, 15 };
+    animation_system.vertex_arrays[SPRITE_ID_BIG_DOT_1] = MakeVertexArray(texture, BIG_DOT_RECT);
+    animation_system.vertex_arrays[SPRITE_ID_BIG_DOT_2] = MakeVertexArray(texture, { 242, 240, 8, 8 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_RIGHT_1] = MakeVertexArray(texture, { 229, 0, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_RIGHT_2] = MakeVertexArray(texture, { 245, 0, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_RIGHT_3] = MakeVertexArray(texture, PACMAN_RECT);
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_LEFT_1] = MakeVertexArray(texture, { 229, 16, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_LEFT_2] = MakeVertexArray(texture, { 245, 16, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_LEFT_3] = MakeVertexArray(texture, { 261, 16, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_UP_1] = MakeVertexArray(texture, { 229, 32, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_UP_2] = MakeVertexArray(texture, { 245, 32, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_UP_3] = MakeVertexArray(texture, { 261, 32, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN_1] = MakeVertexArray(texture, { 229, 48, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN_2] = MakeVertexArray(texture, { 245, 48, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN_3] = MakeVertexArray(texture, { 261, 48, 15, 15 });
+
+    Entity maze = CreateEntity(&world);
+    world.entity_masks[maze.id] = MASK_TRANSFORM | MASK_SPRITE;
+
+    Transform *maze_transform = &world.transforms[maze.id];
+    maze_transform->scale = { half_w, half_h };
+    maze_transform->translate = { half_w, half_h };
+
+    Sprite *maze_sprite = &world.sprites[maze.id];
+    maze_sprite->texture = texture;
+    maze_sprite->vertex_array = MakeVertexArray(texture, { 1, 0, 224, 248 });
+
+    for (u32 row = 0; row < MAZE_HEIGHT; ++row) {
+        for (u32 col = 0; col < MAZE_WIDTH; ++col) {
+            if (MAZE[row][col] == d) {
+                Entity small_dot = CreateEntity(&world);
+                world.entity_masks[small_dot.id] = MASK_TRANSFORM | MASK_SPRITE;
+
+                Transform *small_dot_transform = &world.transforms[small_dot.id];
+                Vector2 small_dot_cell = { static_cast<f32>(col), static_cast<f32>(row) };
+                small_dot_transform->translate = cell_size * small_dot_cell + half_cell_size;
+                small_dot_transform->scale = cell_size * 0.3f;
+
+                Sprite *small_dot_sprite = &world.sprites[small_dot.id];
+                small_dot_sprite->texture = texture;
+                small_dot_sprite->vertex_array = MakeVertexArray(texture, { 227, 242, 4, 4 });
+            }
+            else if (MAZE[row][col] == D) {
+                Entity big_dot = CreateEntity(&world);
+                world.entity_masks[big_dot.id] = MASK_TRANSFORM | MASK_SPRITE | MASK_ANIMATION;
+
+                Transform *big_dot_transform = &world.transforms[big_dot.id];
+                Vector2 big_dot_cell = { static_cast<f32>(col), static_cast<f32>(row) };
+                big_dot_transform->translate = cell_size * big_dot_cell + half_cell_size;
+                big_dot_transform->scale = half_cell_size;
+
+                Sprite *big_dot_sprite = &world.sprites[big_dot.id];
+                big_dot_sprite->texture = texture;
+                big_dot_sprite->vertex_array = MakeVertexArray(texture, BIG_DOT_RECT);
+
+                Animation *big_dot_animation = &world.animations[big_dot.id];
+                big_dot_animation->base_sprite_id = SPRITE_ID_BIG_DOT_1;
+                big_dot_animation->num_frames = 2;
+                big_dot_animation->seconds_between_frames = 0.2f;
             }
         }
     }
 
-    pacman.VAO = InitVAO(texture, PACMAN_RECT);
-    pacman.scale = cell_size;
-    pacman.translate.x = cell_size.x * 14.0f;
-    pacman.translate.y = cell_size.y * 23.5f;
-    pacman.direction = DIRECTION_NONE;
-    pacman.next_direction = DIRECTION_NONE;
-    AddEntity(&pacman);
+    constexpr Vector2 BLINKY_STARTING_CELL = { 14.0f, 11.5f };
+    Entity blinky = CreateEntity(&world);
+    world.entity_masks[blinky.id] = MASK_TRANSFORM | MASK_SPRITE;
+
+    Transform *blinky_transform = &world.transforms[blinky.id];
+    blinky_transform->scale = cell_size;
+    blinky_transform->translate = cell_size * BLINKY_STARTING_CELL;
+
+    Sprite *blinky_sprite = &world.sprites[blinky.id];
+    blinky_sprite->texture = texture;
+    blinky_sprite->vertex_array = MakeVertexArray(texture, { 229, 64, 15, 15 });
+
+
+    constexpr Vector2 PINKY_STARTING_CELL = { 14.0f, 14.5f };
+    Entity pinky = CreateEntity(&world);
+    world.entity_masks[pinky.id] = MASK_TRANSFORM | MASK_SPRITE;
+
+    Transform *pinky_transform = &world.transforms[pinky.id];
+    pinky_transform->scale = cell_size;
+    pinky_transform->translate = cell_size * PINKY_STARTING_CELL;
+
+    Sprite *pinky_sprite = &world.sprites[pinky.id];
+    pinky_sprite->texture = texture;
+    pinky_sprite->vertex_array = MakeVertexArray(texture, { 229, 80, 15, 15 });
+
+
+    constexpr Vector2 INKY_STARTING_CELL = { 12.0f, 14.5f };
+    Entity inky = CreateEntity(&world);
+    world.entity_masks[inky.id] = MASK_TRANSFORM | MASK_SPRITE;
+
+    Transform *inky_transform = &world.transforms[inky.id];
+    inky_transform->scale = cell_size;
+    inky_transform->translate = cell_size * INKY_STARTING_CELL;
+
+    Sprite *inky_sprite = &world.sprites[inky.id];
+    inky_sprite->texture = texture;
+    inky_sprite->vertex_array = MakeVertexArray(texture, { 229, 96, 15, 15 });
+
+
+    constexpr Vector2 CLYDE_STARTING_CELL = { 16.0f, 14.5f };
+    Entity clyde = CreateEntity(&world);
+    world.entity_masks[clyde.id] = MASK_TRANSFORM | MASK_SPRITE;
+
+    Transform *clyde_transform = &world.transforms[clyde.id];
+    clyde_transform->scale = cell_size;
+    clyde_transform->translate = cell_size * CLYDE_STARTING_CELL;
+
+    Sprite *clyde_sprite = &world.sprites[clyde.id];
+    clyde_sprite->texture = texture;
+    clyde_sprite->vertex_array = MakeVertexArray(texture, { 229, 112, 15, 15 });
+
+
+    constexpr Vector2 PACMAN_STARTING_CELL = { 14.0f, 23.5f };
+    Entity pacman = CreateEntity(&world);
+    world.entity_masks[pacman.id] = MASK_TRANSFORM | MASK_SPRITE | MASK_ANIMATION;
+    pacman_system.pacman = pacman;
+
+    Transform *pacman_transform = &world.transforms[pacman.id];
+    pacman_transform->scale = cell_size;
+    pacman_transform->translate = cell_size * PACMAN_STARTING_CELL;
+
+    Sprite *pacman_sprite = &world.sprites[pacman.id];
+    pacman_sprite->texture = texture;
+    pacman_sprite->vertex_array = MakeVertexArray(texture, PACMAN_RECT);
+
+    Animation *pacman_animation = &world.animations[pacman.id];
+    pacman_animation->base_sprite_id = SPRITE_ID_PACMAN_RIGHT_1;
+    pacman_animation->num_frames = 3;
+    pacman_animation->seconds_between_frames = 0.05f;
 }
 
 void
 GameUpdate(f32 delta_time, Input input) {
-    // Register which direction pacman should move next
-    switch (input.last_pressed_key) {
-        case KEY_A: { pacman.next_direction = DIRECTION_LEFT;  } break;
-        case KEY_D: { pacman.next_direction = DIRECTION_RIGHT; } break;
-        case KEY_S: { pacman.next_direction = DIRECTION_DOWN;  } break;
-        case KEY_W: { pacman.next_direction = DIRECTION_UP;    } break;
-    }
+    pacman_system.delta_time = delta_time;
+    pacman_system.input = input;
+    animation_system.delta_time = delta_time;
 
-    // Check if we can move in pacmans next direction
-    Vector2Int cell = ToMazeCoordinates(pacman.translate);
-    Vector2 cell_center = { cell.x * cell_size.x, cell.y * cell_size.y };
-    cell_center += cell_size * 0.5f;
-    Vector2Int next_cell = cell;
-    bool is_in_center_of_current_cell = false;
-    switch (pacman.next_direction) {
-        case DIRECTION_LEFT: {
-            next_cell.x -= 1;
-            is_in_center_of_current_cell = Abs(pacman.translate.y - cell_center.y) < MOVEMENT_PRECISION;
-        } break;
-        case DIRECTION_RIGHT: {
-            next_cell.x += 1;
-            is_in_center_of_current_cell = Abs(pacman.translate.y - cell_center.y) < MOVEMENT_PRECISION;
-        } break;
-        case DIRECTION_DOWN: {
-            next_cell.y += 1;
-            is_in_center_of_current_cell = Abs(pacman.translate.x - cell_center.x) < MOVEMENT_PRECISION;
-        } break;
-        case DIRECTION_UP: {
-            next_cell.y -= 1;
-            is_in_center_of_current_cell = Abs(pacman.translate.x - cell_center.x) < MOVEMENT_PRECISION;
-        } break;
-    }
+    UpdatePacmanSystem(&world, &pacman_system);
+    UpdateAnimationSystem(&world, &animation_system);
+    UpdateRenderSystem(&world, &render_system);
 
-    if (is_in_center_of_current_cell && MAZE[next_cell.y][next_cell.x] != W) {
-        pacman.direction = pacman.next_direction;
-    }
-
-    // Move in pacmans current direction
-    f32 speed = delta_time * PACMAN_SPEED;
-    switch (pacman.direction) {
-        case DIRECTION_LEFT: {
-            if (MAZE[cell.y][cell.x - 1] != W || Abs(pacman.translate.x - cell_center.x) > MOVEMENT_PRECISION) {
-                pacman.translate.x -= speed;
-            }
-        } break;
-        case DIRECTION_RIGHT: {
-            if (MAZE[cell.y][cell.x + 1] != W || Abs(pacman.translate.x - cell_center.x) > MOVEMENT_PRECISION) {
-                pacman.translate.x += speed;
-            }
-        } break;
-        case DIRECTION_DOWN: {
-            if (MAZE[cell.y + 1][cell.x] != W || Abs(pacman.translate.y - cell_center.y) > MOVEMENT_PRECISION) {
-                pacman.translate.y += speed;
-            }
-        } break;
-        case DIRECTION_UP: {
-            if (MAZE[cell.y - 1][cell.x] != W ||Abs(pacman.translate.y - cell_center.y) > MOVEMENT_PRECISION) {
-                pacman.translate.y -= speed;
-            }
-        } break;
-    }
-
-    // Eat dots
-    if (MAZE[cell.y][cell.x] == d || MAZE[cell.y][cell.x] == D) {
-        for (int i = 0; i < num_dots; ++i) {
-            Vector2Int dot_cell = ToMazeCoordinates(dots[i].translate);
-            if (dot_cell == cell) {
-                dots[i].is_active = false;
-                break;
-            }
-        }
-    }
-}
-
-void
-GameRender() {
-    glClear(GL_COLOR_BUFFER_BIT);
-    for (s32 i = 0; i < num_entities; ++i) {
-        Entity *entity = entities[i];
-        if (!entity->is_active) {
-            continue;
-        }
-
-        glBindVertexArray(entity->VAO);
-        Matrix4 model = IDENDITY_MATRIX4;
-        model = Scale(model, entity->scale);
-
-        Vector2 translate = entity->translate;
-        translate.y = (MAZE_HEIGHT * cell_size.y) - translate.y;
-        model = Translate(model, translate);
-        SetMatrix4Uniform(model_location, model);
-
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    }
+    // Update player input
 }

@@ -11,20 +11,24 @@ struct Texture2D {
     s32 height;
 };
 
+struct VertexArray {
+    u32 id;
+    u32 vertex_buffer_id; // For vertices
+};
 
-u32
-CreateOpenGLProgram();
+void
+OpenGLInit();
 
 Texture2D
 LoadAndBindTexture(char *file_name);
 
 void
-SetMatrix4Uniform(u32 location, Matrix4 m);
+SetMatrix4Uniform(char *name, Matrix4 m);
+
+VertexArray
+MakeVertexArray(Texture2D texture, RectangleInt rect);
 
 void
-SetMatrix4Uniform(u32 program_id, char *name, Matrix4 m);
-
-u32
-InitVAO(Texture2D texture, RectangleInt rect);
+UpdateVertexBuffer(u32 vertex_buffer_id, Texture2D texture, RectangleInt rect);
 
 #endif // PACMAN_OPENGL_HPP
