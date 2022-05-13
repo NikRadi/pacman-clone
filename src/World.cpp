@@ -13,11 +13,10 @@ CreateEntity(World *world) {
     return { MAX_ENTITIES };
 }
 
-Entity
-MakeGhost(World *world, Transform transform, Sprite sprite) {
+void
+CreateGhost(World *world, Transform transform, Sprite sprite) {
     Entity ghost = CreateEntity(world);
     world->entity_masks[ghost.id] = MASK_TRANSFORM | MASK_SPRITE;
     world->transforms[ghost.id] = transform;
     world->sprites[ghost.id] = sprite;
-    return ghost;
 }

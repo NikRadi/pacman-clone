@@ -103,22 +103,22 @@ GameInit(s32 window_width, s32 window_height) {
     constexpr Vector2 BLINKY_STARTING_CELL = { 14.0f, 11.5f };
     transform.translate = cell_size * BLINKY_STARTING_CELL;
     sprite.vertex_array = MakeVertexArray(texture, { 229, 64, 15, 15 });
-    MakeGhost(&world, transform, sprite);
+    CreateGhost(&world, transform, sprite);
 
     constexpr Vector2 PINKY_STARTING_CELL = { 14.0f, 14.5f };
     transform.translate = cell_size * PINKY_STARTING_CELL;
     sprite.vertex_array = MakeVertexArray(texture, { 229, 80, 15, 15 });
-    MakeGhost(&world, transform, sprite);
+    CreateGhost(&world, transform, sprite);
 
     constexpr Vector2 INKY_STARTING_CELL = { 12.0f, 14.5f };
     transform.translate = cell_size * INKY_STARTING_CELL;
     sprite.vertex_array = MakeVertexArray(texture, { 229, 96, 15, 15 });
-    MakeGhost(&world, transform, sprite);
+    CreateGhost(&world, transform, sprite);
 
     constexpr Vector2 CLYDE_STARTING_CELL = { 16.0f, 14.5f };
     transform.translate = cell_size * CLYDE_STARTING_CELL;
     sprite.vertex_array = MakeVertexArray(texture, { 229, 112, 15, 15 });
-    MakeGhost(&world, transform, sprite);
+    CreateGhost(&world, transform, sprite);
 
     constexpr Vector2 PACMAN_STARTING_CELL = { 14.0f, 23.5f };
     Entity pacman = CreateEntity(&world);
