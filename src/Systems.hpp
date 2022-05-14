@@ -2,25 +2,58 @@
 #define PACMAN_SYSTEMS_HPP
 #include "Common.hpp"
 #include "Math.hpp"
+#include "Maze.hpp"
 #include "Platform.hpp"
 #include "World.hpp"
 
 
 enum {
-    SPRITE_ID_BIG_DOT_1,
-    SPRITE_ID_BIG_DOT_2,
-    SPRITE_ID_PACMAN_RIGHT_1,
-    SPRITE_ID_PACMAN_RIGHT_2,
-    SPRITE_ID_PACMAN_RIGHT_3,
-    SPRITE_ID_PACMAN_LEFT_1,
-    SPRITE_ID_PACMAN_LEFT_2,
-    SPRITE_ID_PACMAN_LEFT_3,
-    SPRITE_ID_PACMAN_UP_1,
-    SPRITE_ID_PACMAN_UP_2,
-    SPRITE_ID_PACMAN_UP_3,
-    SPRITE_ID_PACMAN_DOWN_1,
-    SPRITE_ID_PACMAN_DOWN_2,
-    SPRITE_ID_PACMAN_DOWN_3,
+    SPRITE_ID_BIG_DOT1,
+    SPRITE_ID_BIG_DOT2,
+    SPRITE_ID_PACMAN_RIGHT1,
+    SPRITE_ID_PACMAN_RIGHT2,
+    SPRITE_ID_PACMAN_RIGHT3, // Also used when Pacman is standing still
+    SPRITE_ID_PACMAN_LEFT1,
+    SPRITE_ID_PACMAN_LEFT2,
+    SPRITE_ID_PACMAN_LEFT3,
+    SPRITE_ID_PACMAN_UP1,
+    SPRITE_ID_PACMAN_UP2,
+    SPRITE_ID_PACMAN_UP3,
+    SPRITE_ID_PACMAN_DOWN1,
+    SPRITE_ID_PACMAN_DOWN2,
+    SPRITE_ID_PACMAN_DOWN3,
+    SPRITE_ID_BLINKY_RIGHT1,
+    SPRITE_ID_BLINKY_RIGHT2,
+    SPRITE_ID_BLINKY_LEFT1,
+    SPRITE_ID_BLINKY_LEFT2,
+    SPRITE_ID_BLINKY_UP1,
+    SPRITE_ID_BLINKY_UP2,
+    SPRITE_ID_BLINKY_DOWN1,
+    SPRITE_ID_BLINKY_DOWN2,
+    SPRITE_ID_PINKY_RIGHT1,
+    SPRITE_ID_PINKY_RIGHT2,
+    SPRITE_ID_PINKY_LEFT1,
+    SPRITE_ID_PINKY_LEFT2,
+    SPRITE_ID_PINKY_UP1,
+    SPRITE_ID_PINKY_UP2,
+    SPRITE_ID_PINKY_DOWN1,
+    SPRITE_ID_PINKY_DOWN2,
+    SPRITE_ID_INKY_RIGHT1,
+    SPRITE_ID_INKY_RIGHT2,
+    SPRITE_ID_INKY_LEFT1,
+    SPRITE_ID_INKY_LEFT2,
+    SPRITE_ID_INKY_UP1,
+    SPRITE_ID_INKY_UP2,
+    SPRITE_ID_INKY_DOWN1,
+    SPRITE_ID_INKY_DOWN2,
+    SPRITE_ID_CLYDE_RIGHT1,
+    SPRITE_ID_CLYDE_RIGHT2,
+    SPRITE_ID_CLYDE_LEFT1,
+    SPRITE_ID_CLYDE_LEFT2,
+    SPRITE_ID_CLYDE_UP1,
+    SPRITE_ID_CLYDE_UP2,
+    SPRITE_ID_CLYDE_DOWN1,
+    SPRITE_ID_CLYDE_DOWN2,
 
     SPRITE_ID_COUNT
 };
@@ -33,67 +66,55 @@ enum {
     DIRECTION_UP
 };
 
-enum {
-    d, // Small dot
-    D, // Big dot
-    E, // Empty
-    W, // Wall
-};
-
 struct AnimationSystem {
-    f32 delta_time;
     VertexArray vertex_arrays[SPRITE_ID_COUNT];
 };
 
-struct RenderSystem {
-    s32 window_height;
-};
 
-struct PacmanSystem {
+// No need to make a 'PacmanMovementComponent'.
+// We just store the needed information here.
+struct PacmanMovementSystem {
     Input input;
     Entity pacman;
     u32 current_direction;
     u32 next_direction;
-    f32 delta_time;
-    Vector2 cell_size;
-    Vector2 half_cell_size;
 };
 
+enum {
+    GHOST_BLINKY,
+    GHOST_PINKY,
+    GHOST_INKY,
+    GHOST_CLYDE,
 
-constexpr static s32 MAZE_WIDTH = 28;
-constexpr static s32 MAZE_HEIGHT = 31;
-constexpr static u8 MAZE[MAZE_HEIGHT][MAZE_WIDTH] = {
-    W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,
-    W,d,d,d,d,d,d,d,d,d,d,d,d,W,W,d,d,d,d,d,d,d,d,d,d,d,d,W,
-    W,d,W,W,W,W,d,W,W,W,W,W,d,W,W,d,W,W,W,W,W,d,W,W,W,W,d,W,
-    W,D,W,W,W,W,d,W,W,W,W,W,d,W,W,d,W,W,W,W,W,d,W,W,W,W,D,W,
-    W,d,W,W,W,W,d,W,W,W,W,W,d,W,W,d,W,W,W,W,W,d,W,W,W,W,d,W,
-    W,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,W,
-    W,d,W,W,W,W,d,W,W,d,W,W,W,W,W,W,W,W,d,W,W,d,W,W,W,W,d,W,
-    W,d,W,W,W,W,d,W,W,d,W,W,W,W,W,W,W,W,d,W,W,d,W,W,W,W,d,W,
-    W,d,d,d,d,d,d,W,W,d,d,d,d,W,W,d,d,d,d,W,W,d,d,d,d,d,d,W,
-    W,W,W,W,W,W,d,W,W,W,W,W,E,W,W,E,W,W,W,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,W,W,W,E,W,W,E,W,W,W,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,E,E,E,E,E,E,E,E,E,E,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,E,E,E,E,E,E,E,E,E,E,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,E,E,E,E,E,E,E,E,E,E,W,W,d,W,W,W,W,W,W,
-    E,E,E,E,E,E,d,E,E,E,E,E,E,E,E,E,E,E,E,E,E,d,E,E,E,E,E,E,
-    W,W,W,W,W,W,d,W,W,E,E,E,E,E,E,E,E,E,E,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,E,E,E,E,E,E,E,E,E,E,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,E,E,E,E,E,E,E,E,E,E,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,E,W,W,W,W,W,W,W,W,E,W,W,d,W,W,W,W,W,W,
-    W,W,W,W,W,W,d,W,W,E,W,W,W,W,W,W,W,W,E,W,W,d,W,W,W,W,W,W,
-    W,d,d,d,d,d,d,d,d,d,d,d,d,W,W,d,d,d,d,d,d,d,d,d,d,d,d,W,
-    W,d,W,W,W,W,d,W,W,W,W,W,d,W,W,d,W,W,W,W,W,d,W,W,W,W,d,W,
-    W,d,W,W,W,W,d,W,W,W,W,W,d,W,W,d,W,W,W,W,W,d,W,W,W,W,d,W,
-    W,D,d,d,W,W,d,d,d,d,d,d,d,E,E,d,d,d,d,d,d,d,W,W,d,d,D,W,
-    W,W,W,d,W,W,d,W,W,d,W,W,W,W,W,W,W,W,d,W,W,d,W,W,d,W,W,W,
-    W,W,W,d,W,W,d,W,W,d,W,W,W,W,W,W,W,W,d,W,W,d,W,W,d,W,W,W,
-    W,d,d,d,d,d,d,W,W,d,d,d,d,W,W,d,d,d,d,W,W,d,d,d,d,d,d,W,
-    W,d,W,W,W,W,W,W,W,W,W,W,d,W,W,d,W,W,W,W,W,W,W,W,W,W,d,W,
-    W,d,W,W,W,W,W,W,W,W,W,W,d,W,W,d,W,W,W,W,W,W,W,W,W,W,d,W,
-    W,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,W,
-    W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W,W
+    GHOST_COUNT
+};
+
+enum {
+    STATE_CHASE,
+    STATE_SCATTER,
+    STATE_FRIGHTENED,
+    STATE_EATEN
+};
+
+// This is technically a component, but since
+// we know there are always 4 ghosts we add 4
+// Ghost components to the GhostMovementSystem
+struct Ghost {
+    Entity id;
+    Vector2Int target_cell;
+    u8 state;
+    u8 has_reached_target_cell;
+    u8 current_direction;
+
+    // Each ghost scatters around different areas.
+    // We define the area with 4 cells.
+    u8 scatter_cell_idx;
+    Vector2Int scatter_cells[4];
+};
+
+struct GhostMovementSystem {
+    Entity pacman;
+    Ghost ghosts[GHOST_COUNT];
 };
 
 
@@ -101,9 +122,12 @@ void
 UpdateAnimationSystem(World *world, AnimationSystem *system);
 
 void
-UpdateRenderSystem(World *world, RenderSystem *system);
+UpdateRenderSystem(World *world);
 
 void
-UpdatePacmanSystem(World *world, PacmanSystem *system);
+UpdatePacmanMovementSystem(World *world, PacmanMovementSystem *system);
+
+void
+UpdateGhostMovementSystem(World *world, GhostMovementSystem *system);
 
 #endif // PACMAN_SYSTEMS_HPP

@@ -59,7 +59,7 @@ CreateAndCompileShader(char *shader_code, GLenum shader_type) {
     GLint is_compiled = false;
     glGetShaderiv(shader_id, GL_COMPILE_STATUS, &is_compiled);
     if (!is_compiled) {
-        INVALID_CODE_PATH;
+        PlatformShowErrorAndExit("Could not compile shaders");
     }
 
     return shader_id;
@@ -77,7 +77,7 @@ CreateOpenGLProgram() {
     GLint is_linked = false;
     glGetProgramiv(program_id, GL_LINK_STATUS, &is_linked);
     if (!is_linked) {
-        INVALID_CODE_PATH;
+        PlatformShowErrorAndExit("Could not link shader program");
     }
 
     glDeleteShader(vertex_shader_id);

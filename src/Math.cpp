@@ -60,6 +60,11 @@ operator*(f32 a, Vector2 b) {
     return b * a;
 }
 
+Vector2Int
+operator-(Vector2Int a, Vector2Int b) {
+    return { a.x - b.x, a.y - b.y };
+}
+
 bool
 operator==(Vector2Int a, Vector2Int b) {
     return a.x == b.x && a.y == b.y;

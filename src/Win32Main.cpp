@@ -88,7 +88,7 @@ Win32CreateWindow(HINSTANCE instance) {
     window_class.hInstance = instance;
     window_class.lpszClassName = "PacmanWindowClass";
     if (!RegisterClass(&window_class)) {
-        INVALID_CODE_PATH;
+        PlatformShowErrorAndExit("Could not create window");
     }
 
     RECT client_rect = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
@@ -105,7 +105,7 @@ Win32CreateWindow(HINSTANCE instance) {
     );
 
     if (!window) {
-        INVALID_CODE_PATH;
+        PlatformShowErrorAndExit("Could not create window");
     }
 
     return window;
@@ -114,33 +114,37 @@ Win32CreateWindow(HINSTANCE instance) {
 File
 PlatformReadFile(char *file_name) {
     HANDLE file_handle = CreateFile(file_name, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+    bool is_file_opened = true;
     if (file_handle == INVALID_HANDLE_VALUE) {
-        INVALID_CODE_PATH;
+        is_file_opened = false;
     }
 
     LARGE_INTEGER file_size;
     if (!GetFileSizeEx(file_handle, &file_size)) {
-        INVALID_CODE_PATH;
+        is_file_opened = false;
     }
 
     ASSERT(file_size.QuadPart <= 0xffffffff);
     u32 file_bytes = static_cast<u32>(file_size.QuadPart);
     void *buffer= VirtualAlloc(0, file_bytes, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     if (!buffer) {
-        INVALID_CODE_PATH;
+        is_file_opened = false;
     }
 
     DWORD bytes_read;
     if (!ReadFile(file_handle, buffer, file_bytes, &bytes_read, 0)) {
-        INVALID_CODE_PATH;
+        is_file_opened = false;
     }
 
     if (bytes_read != file_bytes) {
-        INVALID_CODE_PATH;
+        is_file_opened = false;
+    }
+
+    if (!is_file_opened) {
+        PlatformShowErrorAndExit("Could not open file");
     }
 
     CloseHandle(file_handle);
-
     File file;
     file.buffer = buffer;
     return file;
@@ -152,27 +156,24 @@ PlatformFreeFile(File file) {
     VirtualFree(file.buffer, 0, MEM_RELEASE);
 }
 
+void
+PlatformShowErrorAndExit(char *msg) {
+    MessageBox(0, msg, "Error", MB_OK);
+    is_window_open = false;
+}
+
 s32
 WinMain(HINSTANCE instance, HINSTANCE, LPSTR, s32) {
     HWND window = Win32CreateWindow(instance);
     HDC device_context = GetDC(window);
     HGLRC gl_rendering_context = Win32OpenGLGetRenderingContext(device_context);
     if (!wglMakeCurrent(device_context, gl_rendering_context)) {
-        INVALID_CODE_PATH;
+        PlatformShowErrorAndExit("OpenGL context error");
     }
 
     if (!gladLoadGL()) {
-        INVALID_CODE_PATH;
+        NOT_IMPLEMENTED;
     }
-
-#ifdef PACMAN_DEBUG
-    RECT client_rect;
-    GetClientRect(window, &client_rect);
-    s32 window_width = client_rect.right - client_rect.left;
-    s32 window_height = client_rect.bottom - client_rect.top;
-    ASSERT(window_width == WINDOW_WIDTH);
-    ASSERT(window_height == WINDOW_HEIGHT);
-#endif
 
     GameInit(WINDOW_WIDTH, WINDOW_HEIGHT);
     Input input = {};

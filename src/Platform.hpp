@@ -28,4 +28,7 @@ PlatformReadFile(char *file_name);
 void
 PlatformFreeFile(File file);
 
+void
+PlatformShowErrorAndExit(char *msg);
+
 #endif // PACMAN_PLATFORM_HPP

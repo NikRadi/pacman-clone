@@ -58,6 +58,9 @@ operator*(Vector2 a, f32 b);
 Vector2
 operator*(f32 a, Vector2 b);
 
+Vector2Int
+operator-(Vector2Int a, Vector2Int b);
+
 bool
 operator==(Vector2Int a, Vector2Int b);
 
