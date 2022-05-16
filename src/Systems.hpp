@@ -54,30 +54,18 @@ enum {
     SPRITE_ID_CLYDE_UP2,
     SPRITE_ID_CLYDE_DOWN1,
     SPRITE_ID_CLYDE_DOWN2,
+    SPRITE_ID_GHOST_FRIGHTENED1,
+    SPRITE_ID_GHOST_FRIGHTENED2,
 
     SPRITE_ID_COUNT
 };
 
 enum {
-    DIRECTION_NONE,
     DIRECTION_LEFT,
     DIRECTION_RIGHT,
     DIRECTION_DOWN,
-    DIRECTION_UP
-};
-
-struct AnimationSystem {
-    VertexArray vertex_arrays[SPRITE_ID_COUNT];
-};
-
-
-// No need to make a 'PacmanMovementComponent'.
-// We just store the needed information here.
-struct PacmanMovementSystem {
-    Input input;
-    Entity pacman;
-    u32 current_direction;
-    u32 next_direction;
+    DIRECTION_UP,
+    DIRECTION_NONE
 };
 
 enum {
@@ -93,7 +81,9 @@ enum {
     STATE_CHASE,
     STATE_SCATTER,
     STATE_FRIGHTENED,
-    STATE_EATEN
+    STATE_EATEN,
+
+    STATE_COUNT
 };
 
 // This is technically a component, but since
@@ -105,11 +95,31 @@ struct Ghost {
     u8 state;
     u8 has_reached_target_cell;
     u8 current_direction;
+    u8 base_sprite_ids[4];
+    u32 seconds_in_state[STATE_COUNT];
+    f32 current_seconds;
+    Vector2Int last_intersection_cell;
+
 
     // Each ghost scatters around different areas.
     // We define the area with 4 cells.
     u8 scatter_cell_idx;
-    Vector2Int scatter_cells[4];
+    Vector2Int scatter_cell;
+};
+
+struct AnimationSystem {
+    VertexArray vertex_arrays[SPRITE_ID_COUNT];
+};
+
+
+// No need to make a 'PacmanMovementComponent'.
+// We just store the needed information here.
+struct PacmanMovementSystem {
+    Input input;
+    Entity pacman;
+    u32 current_direction;
+    u32 next_direction;
+    Ghost *ghosts[GHOST_COUNT];
 };
 
 struct GhostMovementSystem {

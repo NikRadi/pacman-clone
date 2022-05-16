@@ -3,6 +3,8 @@
 
 
 enum {
+    // KEY_NONE is needed so that Pacnman
+    // stands still when no input is given
     KEY_NONE,
     KEY_A,
     KEY_D,

@@ -64,4 +64,7 @@ operator-(Vector2Int a, Vector2Int b);
 bool
 operator==(Vector2Int a, Vector2Int b);
 
+bool
+operator!=(Vector2Int a, Vector2Int b);
+
 #endif // PACMAN_MATH_HPP

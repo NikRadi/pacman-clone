@@ -23,7 +23,8 @@ GameInit(s32 window_width, s32 window_height) {
 
     Matrix4 projection = Orthographic(0.0f, w, 0.0f, h);
     SetMatrix4Uniform("projection", projection);
-    Texture2D texture = LoadAndBindTexture("sprites\\spritesheet.bmp");
+//    Texture2D texture = LoadAndBindTexture("sprites\\spritesheet.bmp");
+    Texture2D texture = LoadAndBindTexture("C:\\Users\\nik\\source\\repos\\pacman-clone\\sprites\\spritesheet.bmp");
 
     world = {};
     ghost_movement_system = {};
@@ -31,57 +32,60 @@ GameInit(s32 window_width, s32 window_height) {
     world.half_cell_size = half_cell_size;
     world.window_size = { window_width, window_height };
     pacman_movement_system.current_direction = DIRECTION_NONE;
+    pacman_movement_system.next_direction = DIRECTION_NONE;
 
     // These constexpr variables are defined here because they are used later also
     constexpr RectangleInt BIG_DOT_RECT = { 233, 240, 8, 8 };
     constexpr RectangleInt PACMAN_RECT = { 261, 0, 15, 15 };
-    animation_system.vertex_arrays[SPRITE_ID_BIG_DOT1]         = MakeVertexArray(texture, BIG_DOT_RECT);
-    animation_system.vertex_arrays[SPRITE_ID_BIG_DOT2]         = MakeVertexArray(texture, { 242, 240, 8, 8 });
-    animation_system.vertex_arrays[SPRITE_ID_PACMAN_RIGHT1]    = MakeVertexArray(texture, { 229, 0, 15, 15 });
-    animation_system.vertex_arrays[SPRITE_ID_PACMAN_RIGHT2]    = MakeVertexArray(texture, { 245, 0, 15, 15 });
-    animation_system.vertex_arrays[SPRITE_ID_PACMAN_RIGHT3]    = MakeVertexArray(texture, PACMAN_RECT);
-    animation_system.vertex_arrays[SPRITE_ID_PACMAN_LEFT1]     = MakeVertexArray(texture, { 229, 16, 15, 15 });
-    animation_system.vertex_arrays[SPRITE_ID_PACMAN_LEFT2]     = MakeVertexArray(texture, { 245, 16, 15, 15 });
-    animation_system.vertex_arrays[SPRITE_ID_PACMAN_LEFT3]     = MakeVertexArray(texture, { 261, 16, 15, 15 });
-    animation_system.vertex_arrays[SPRITE_ID_PACMAN_UP1]       = MakeVertexArray(texture, { 229, 32, 15, 15 });
-    animation_system.vertex_arrays[SPRITE_ID_PACMAN_UP2]       = MakeVertexArray(texture, { 245, 32, 15, 15 });
-    animation_system.vertex_arrays[SPRITE_ID_PACMAN_UP3]       = MakeVertexArray(texture, { 261, 32, 15, 15 });
-    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN1]     = MakeVertexArray(texture, { 229, 48, 15, 15 });
-    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN2]     = MakeVertexArray(texture, { 245, 48, 15, 15 });
-    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN3]     = MakeVertexArray(texture, { 261, 48, 15, 15 });
-    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN3]     = MakeVertexArray(texture, { 261, 48, 15, 15 });
-    animation_system.vertex_arrays[SPRITE_ID_BLINKY_RIGHT1]    = MakeVertexArray(texture, { 229, 64, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_BLINKY_RIGHT2]    = MakeVertexArray(texture, { 245, 64, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_BLINKY_LEFT1]     = MakeVertexArray(texture, { 261, 64, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_BLINKY_LEFT2]     = MakeVertexArray(texture, { 277, 64, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_BLINKY_UP1]       = MakeVertexArray(texture, { 293, 64, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_BLINKY_UP2]       = MakeVertexArray(texture, { 309, 64, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_BLINKY_DOWN1]     = MakeVertexArray(texture, { 325, 64, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_BLINKY_DOWN2]     = MakeVertexArray(texture, { 341, 64, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_PINKY_RIGHT1]     = MakeVertexArray(texture, { 229, 80, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_PINKY_RIGHT2]     = MakeVertexArray(texture, { 245, 80, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_PINKY_LEFT1]      = MakeVertexArray(texture, { 261, 80, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_PINKY_LEFT2]      = MakeVertexArray(texture, { 277, 80, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_PINKY_UP1]        = MakeVertexArray(texture, { 293, 80, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_PINKY_UP2]        = MakeVertexArray(texture, { 309, 80, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_PINKY_DOWN1]      = MakeVertexArray(texture, { 325, 80, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_PINKY_DOWN2]      = MakeVertexArray(texture, { 341, 80, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_INKY_RIGHT1]      = MakeVertexArray(texture, { 229, 96, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_INKY_RIGHT2]      = MakeVertexArray(texture, { 245, 96, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_INKY_LEFT1]       = MakeVertexArray(texture, { 261, 96, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_INKY_LEFT2]       = MakeVertexArray(texture, { 277, 96, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_INKY_UP1]         = MakeVertexArray(texture, { 293, 96, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_INKY_UP2]         = MakeVertexArray(texture, { 309, 96, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_INKY_DOWN1]       = MakeVertexArray(texture, { 325, 96, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_INKY_DOWN2]       = MakeVertexArray(texture, { 341, 96, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_CLYDE_RIGHT1]     = MakeVertexArray(texture, { 229, 112, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_CLYDE_RIGHT2]     = MakeVertexArray(texture, { 245, 112, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_CLYDE_LEFT1]      = MakeVertexArray(texture, { 261, 112, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_CLYDE_LEFT2]      = MakeVertexArray(texture, { 277, 112, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_CLYDE_UP1]        = MakeVertexArray(texture, { 293, 112, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_CLYDE_UP2]        = MakeVertexArray(texture, { 309, 112, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_CLYDE_DOWN1]      = MakeVertexArray(texture, { 325, 112, 16, 16 });
-    animation_system.vertex_arrays[SPRITE_ID_CLYDE_DOWN2]      = MakeVertexArray(texture, { 341, 112, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_BIG_DOT1]           = MakeVertexArray(texture, BIG_DOT_RECT);
+    animation_system.vertex_arrays[SPRITE_ID_BIG_DOT2]           = MakeVertexArray(texture, { 242, 240, 8, 8 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_RIGHT1]      = MakeVertexArray(texture, { 229, 0, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_RIGHT2]      = MakeVertexArray(texture, { 245, 0, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_RIGHT3]      = MakeVertexArray(texture, PACMAN_RECT);
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_LEFT1]       = MakeVertexArray(texture, { 229, 16, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_LEFT2]       = MakeVertexArray(texture, { 245, 16, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_LEFT3]       = MakeVertexArray(texture, { 261, 16, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_UP1]         = MakeVertexArray(texture, { 229, 32, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_UP2]         = MakeVertexArray(texture, { 245, 32, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_UP3]         = MakeVertexArray(texture, { 261, 32, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN1]       = MakeVertexArray(texture, { 229, 48, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN2]       = MakeVertexArray(texture, { 245, 48, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN3]       = MakeVertexArray(texture, { 261, 48, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN3]       = MakeVertexArray(texture, { 261, 48, 15, 15 });
+    animation_system.vertex_arrays[SPRITE_ID_BLINKY_RIGHT1]      = MakeVertexArray(texture, { 229, 64, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_BLINKY_RIGHT2]      = MakeVertexArray(texture, { 245, 64, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_BLINKY_LEFT1]       = MakeVertexArray(texture, { 261, 64, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_BLINKY_LEFT2]       = MakeVertexArray(texture, { 277, 64, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_BLINKY_UP1]         = MakeVertexArray(texture, { 293, 64, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_BLINKY_UP2]         = MakeVertexArray(texture, { 309, 64, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_BLINKY_DOWN1]       = MakeVertexArray(texture, { 325, 64, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_BLINKY_DOWN2]       = MakeVertexArray(texture, { 341, 64, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_PINKY_RIGHT1]       = MakeVertexArray(texture, { 229, 80, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_PINKY_RIGHT2]       = MakeVertexArray(texture, { 245, 80, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_PINKY_LEFT1]        = MakeVertexArray(texture, { 261, 80, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_PINKY_LEFT2]        = MakeVertexArray(texture, { 277, 80, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_PINKY_UP1]          = MakeVertexArray(texture, { 293, 80, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_PINKY_UP2]          = MakeVertexArray(texture, { 309, 80, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_PINKY_DOWN1]        = MakeVertexArray(texture, { 325, 80, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_PINKY_DOWN2]        = MakeVertexArray(texture, { 341, 80, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_INKY_RIGHT1]        = MakeVertexArray(texture, { 229, 96, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_INKY_RIGHT2]        = MakeVertexArray(texture, { 245, 96, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_INKY_LEFT1]         = MakeVertexArray(texture, { 261, 96, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_INKY_LEFT2]         = MakeVertexArray(texture, { 277, 96, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_INKY_UP1]           = MakeVertexArray(texture, { 293, 96, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_INKY_UP2]           = MakeVertexArray(texture, { 309, 96, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_INKY_DOWN1]         = MakeVertexArray(texture, { 325, 96, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_INKY_DOWN2]         = MakeVertexArray(texture, { 341, 96, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_CLYDE_RIGHT1]       = MakeVertexArray(texture, { 229, 112, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_CLYDE_RIGHT2]       = MakeVertexArray(texture, { 245, 112, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_CLYDE_LEFT1]        = MakeVertexArray(texture, { 261, 112, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_CLYDE_LEFT2]        = MakeVertexArray(texture, { 277, 112, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_CLYDE_UP1]          = MakeVertexArray(texture, { 293, 112, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_CLYDE_UP2]          = MakeVertexArray(texture, { 309, 112, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_CLYDE_DOWN1]        = MakeVertexArray(texture, { 325, 112, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_CLYDE_DOWN2]        = MakeVertexArray(texture, { 341, 112, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_GHOST_FRIGHTENED1]  = MakeVertexArray(texture, { 357, 64, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_GHOST_FRIGHTENED2]  = MakeVertexArray(texture, { 373, 64, 16, 16 });
 
     Sprite sprite;
     sprite.texture = texture;
@@ -139,19 +143,36 @@ GameInit(s32 window_width, s32 window_height) {
     Entity blinky = CreateGhost(&world, transform, sprite, SPRITE_ID_BLINKY_LEFT1);
 
     Ghost *blinky_ghost = &ghost_movement_system.ghosts[GHOST_BLINKY];
+    pacman_movement_system.ghosts[GHOST_BLINKY] = blinky_ghost;
     blinky_ghost->id = blinky;
     blinky_ghost->state = STATE_SCATTER;
     blinky_ghost->current_direction = DIRECTION_LEFT;
-    blinky_ghost->scatter_cells[0] = { 22, 5 };
-    blinky_ghost->scatter_cells[1] = { 22, 2 };
-    blinky_ghost->scatter_cells[2] = { 27, 2 };
-    blinky_ghost->scatter_cells[3] = { 27, 5 };
+    blinky_ghost->scatter_cell = { 26, -3 };
+    blinky_ghost->base_sprite_ids[DIRECTION_LEFT] = SPRITE_ID_BLINKY_LEFT1;
+    blinky_ghost->base_sprite_ids[DIRECTION_RIGHT] = SPRITE_ID_BLINKY_RIGHT1;
+    blinky_ghost->base_sprite_ids[DIRECTION_DOWN] = SPRITE_ID_BLINKY_DOWN1;
+    blinky_ghost->base_sprite_ids[DIRECTION_UP] = SPRITE_ID_BLINKY_UP1;
+    blinky_ghost->seconds_in_state[STATE_SCATTER] = 7;
+    blinky_ghost->seconds_in_state[STATE_CHASE] = 20;
 
 
     constexpr Vector2 PINKY_STARTING_CELL = { 14.0f, 14.5f };
     transform.translate = cell_size * PINKY_STARTING_CELL;
     sprite.vertex_array = animation_system.vertex_arrays[SPRITE_ID_PINKY_UP1];
-    CreateGhost(&world, transform, sprite, SPRITE_ID_PINKY_UP1);
+    Entity pinky = CreateGhost(&world, transform, sprite, SPRITE_ID_PINKY_UP1);
+
+    Ghost *pinky_ghost = &ghost_movement_system.ghosts[GHOST_PINKY];
+    pacman_movement_system.ghosts[GHOST_PINKY] = pinky_ghost;
+    pinky_ghost->id = pinky;
+    pinky_ghost->state = STATE_SCATTER;
+    pinky_ghost->current_direction = DIRECTION_UP;
+    pinky_ghost->scatter_cell = { 3, -3 };
+    pinky_ghost->base_sprite_ids[DIRECTION_LEFT] = SPRITE_ID_PINKY_LEFT1;
+    pinky_ghost->base_sprite_ids[DIRECTION_RIGHT] = SPRITE_ID_PINKY_RIGHT1;
+    pinky_ghost->base_sprite_ids[DIRECTION_DOWN] = SPRITE_ID_PINKY_DOWN1;
+    pinky_ghost->base_sprite_ids[DIRECTION_UP] = SPRITE_ID_PINKY_UP1;
+    pinky_ghost->seconds_in_state[STATE_SCATTER] = 15;
+    pinky_ghost->seconds_in_state[STATE_CHASE] = 20;
 
     constexpr Vector2 INKY_STARTING_CELL = { 12.0f, 14.5f };
     transform.translate = cell_size * INKY_STARTING_CELL;
@@ -165,9 +186,10 @@ GameInit(s32 window_width, s32 window_height) {
 
     constexpr Vector2 PACMAN_STARTING_CELL = { 14.0f, 23.5f };
     Entity pacman = CreateEntity(&world);
-    // Pacmans animation system is enabled when he moves
+    // Pacmans animation system is enabled when he starts moving
     world.entity_masks[pacman] = MASK_TRANSFORM | MASK_SPRITE;
     pacman_movement_system.pacman = pacman;
+    ghost_movement_system.pacman = pacman;
 
     transform.translate = cell_size * PACMAN_STARTING_CELL;
     world.transforms[pacman] = transform;

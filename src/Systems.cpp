@@ -18,18 +18,6 @@ SquaredDistanceTo(Vector2Int cell_from, Vector2Int cell_to) {
     return diff.x * diff.x + diff.y * diff.y;
 }
 
-static Vector2Int
-MoveInDirection(Vector2Int cell, u8 direction) {
-    switch (direction) {
-        case DIRECTION_LEFT:  { cell.x -= 1; } break;
-        case DIRECTION_RIGHT: { cell.x += 1; } break;
-        case DIRECTION_DOWN:  { cell.y += 1; } break;
-        case DIRECTION_UP:    { cell.y -= 1; } break;
-    }
-
-    return cell;
-}
-
 void
 UpdateAnimationSystem(World *world, AnimationSystem *system) {
     constexpr u32 MASK = MASK_SPRITE | MASK_ANIMATION;
@@ -182,7 +170,7 @@ UpdatePacmanMovementSystem(World *world, PacmanMovementSystem *system) {
     }
 
     // Eat dots
-    if (MAZE[cell.y][cell.x] == d) {
+    if (MAZE[cell.y][cell.x] == d || MAZE[cell.y][cell.x] == D) {
         for (u32 i = 0; i < MAX_ENTITIES; ++i) {
             Vector2 dot_translate = world->transforms[i].translate;
             Vector2Int dot_cell = ToMazeCoordinates(dot_translate, world->cell_size);
@@ -191,79 +179,222 @@ UpdatePacmanMovementSystem(World *world, PacmanMovementSystem *system) {
                 break;
             }
         }
+
+        if (MAZE[cell.y][cell.x] == D) {
+            for (u32 i = 0; i <= GHOST_PINKY; ++i) {
+                system->ghosts[i]->state = STATE_FRIGHTENED;
+            }
+        }
     }
 }
 
 void
 UpdateGhostMovementSystem(World *world, GhostMovementSystem *system) {
-    for (u8 ghost_id = 0; ghost_id <= GHOST_BLINKY; ++ghost_id) {
+    for (u8 ghost_id = 0; ghost_id <= GHOST_PINKY; ++ghost_id) {
         Ghost *ghost = &system->ghosts[ghost_id];
-        if (ghost->has_reached_target_cell) {
-            switch (ghost->state) {
-                case STATE_CHASE: { NOT_IMPLEMENTED } break;
-                case STATE_SCATTER: {
-                    ghost->target_cell = ghost->scatter_cells[ghost->scatter_cell_idx];
-                    PlatformShowErrorAndExit("Why here");
-                } break;
-                case STATE_FRIGHTENED: { NOT_IMPLEMENTED } break;
-                case STATE_EATEN: { NOT_IMPLEMENTED } break;
-            }
-        }
-        else {
-            Vector2 *translate = &world->transforms[ghost->id].translate;
-            Vector2Int cell = ToMazeCoordinates(*translate, world->cell_size);
-            Vector2Int next_cell = MoveInDirection(cell, ghost->current_direction);
-            if (IS_INTERSECTION[cell.y][cell.x]) {
-                Vector2Int up_cell = MoveInDirection(cell, DIRECTION_UP);
-                u32 distance_up = SquaredDistanceTo(up_cell, ghost->target_cell);
-                Vector2Int left_cell = MoveInDirection(cell, DIRECTION_LEFT);
-                u32 distance_left = SquaredDistanceTo(left_cell, ghost->target_cell);
-                Vector2Int down_cell = MoveInDirection(cell, DIRECTION_DOWN);
-                u32 distance_down = SquaredDistanceTo(down_cell, ghost->target_cell);
-                Vector2Int right_cell = MoveInDirection(cell, DIRECTION_RIGHT);
-                u32 distance_right = SquaredDistanceTo(right_cell, ghost->target_cell);
-            }
-            else if (MAZE[next_cell.y][next_cell.x] == W) {
-                // We are not in an intersection and the next cell is a wall.
-                // Since we cannot move back either, we can only move in one
-                // of 2 possible directions.
-                if (ghost->current_direction == DIRECTION_RIGHT || ghost->current_direction == DIRECTION_LEFT) {
-                    Vector2Int up = MoveInDirection(cell, DIRECTION_UP);
-                    if (MAZE[up.y][up.x] != W) {
-                        ghost->current_direction = DIRECTION_UP;
-                    }
-                    else {
-                        ghost->current_direction = DIRECTION_DOWN;
-                    }
+        Animation *animation = &world->animations[ghost->id];
+        ghost->current_seconds += world->delta_time;
+        switch (ghost->state) {
+            case STATE_CHASE: {
+                Vector2 pacman_translate = world->transforms[system->pacman].translate;
+                ghost->target_cell = ToMazeCoordinates(pacman_translate, world->cell_size);
+                if (ghost->current_seconds >= ghost->seconds_in_state[STATE_CHASE]) {
+                    ghost->state = STATE_SCATTER;
+                    ghost->current_seconds = 0.0f;
                 }
-                else if (ghost->current_direction == DIRECTION_DOWN || ghost->current_direction == DIRECTION_UP) {
-                    Vector2Int right = MoveInDirection(cell, DIRECTION_RIGHT);
-                    if (MAZE[right.y][right.x] != W) {
-                        ghost->current_direction = DIRECTION_RIGHT;
+            } break;
+            case STATE_SCATTER: {
+                ghost->target_cell = ghost->scatter_cell;
+                if (ghost->current_seconds >= ghost->seconds_in_state[STATE_SCATTER]) {
+                    ghost->state = STATE_CHASE;
+                    ghost->current_seconds = 0.0f;
+                }
+            } break;
+            case STATE_FRIGHTENED: {
+                animation->base_sprite_id = SPRITE_ID_GHOST_FRIGHTENED1;
+                switch (ghost->current_direction) {
+                    case DIRECTION_LEFT:  { ghost->current_direction = DIRECTION_RIGHT; } break;
+                    case DIRECTION_RIGHT: { ghost->current_direction = DIRECTION_LEFT; } break;
+                    case DIRECTION_DOWN:  { ghost->current_direction = DIRECTION_DOWN; } break;
+                    case DIRECTION_UP:    { ghost->current_direction = DIRECTION_UP; } break;
+                }
+            } break;
+            case STATE_EATEN: { NOT_IMPLEMENTED } break;
+        }
+
+        constexpr f32 MOVEMENT_PRECISION = 2.0f;
+        Vector2 *translate = &world->transforms[ghost->id].translate;
+        Vector2Int cell = ToMazeCoordinates(*translate, world->cell_size);
+        Vector2Int next_cell = cell;
+        Vector2 cell_center = cell * world->cell_size + world->half_cell_size;
+        bool is_in_center_of_cell = false;
+        switch (ghost->current_direction) {
+            case DIRECTION_LEFT: {
+                next_cell.x -= 1;
+                is_in_center_of_cell = Abs(translate->x - cell_center.x) < MOVEMENT_PRECISION;
+            } break;
+            case DIRECTION_RIGHT: {
+                next_cell.x += 1;
+                is_in_center_of_cell = Abs(translate->x - cell_center.x) < MOVEMENT_PRECISION;
+            } break;
+            case DIRECTION_DOWN: {
+                next_cell.y += 1;
+                is_in_center_of_cell = Abs(translate->y - cell_center.y) < MOVEMENT_PRECISION;
+            } break;
+            case DIRECTION_UP: {
+                next_cell.y -= 1;
+                is_in_center_of_cell = Abs(translate->y - cell_center.y) < MOVEMENT_PRECISION;
+            } break;
+        }
+
+        if (is_in_center_of_cell && IS_INTERSECTION[cell.y][cell.x] && cell != ghost->last_intersection_cell) {
+            ghost->last_intersection_cell = cell;
+            Vector2Int cell_left = cell;
+            cell_left.x -= 1;
+            Vector2Int cell_right = cell;
+            cell_right.x += 1;
+            Vector2Int cell_down = cell;
+            cell_down.y += 1;
+            Vector2Int cell_up = cell;
+            cell_up.y -= 1;
+
+            u8 next_direction = DIRECTION_NONE;
+            u32 best_distance = 9999;
+            switch (ghost->current_direction) {
+                case DIRECTION_LEFT: {
+                    if (MAZE[cell_up.y][cell_up.x] != W) {
+                        u32 distance = SquaredDistanceTo(cell_up, ghost->target_cell);
+                        if (distance < best_distance) {
+                            best_distance = distance;
+                            next_direction = DIRECTION_UP;
+                        }
                     }
-                    else {
-                        ghost->current_direction = DIRECTION_LEFT;
+
+                    if (MAZE[cell_left.y][cell_left.x] != W) {
+                        u32 distance = SquaredDistanceTo(cell_left, ghost->target_cell);
+                        if (distance < best_distance) {
+                            best_distance = distance;
+                            next_direction = DIRECTION_LEFT;
+                        }
                     }
+
+                    if (MAZE[cell_down.y][cell_down.x] != W) {
+                        u32 distance = SquaredDistanceTo(cell_down, ghost->target_cell);
+                        if (distance < best_distance) {
+                            best_distance = distance;
+                            next_direction = DIRECTION_DOWN;
+                        }
+                    }
+                } break;
+                case DIRECTION_RIGHT: {
+                    if (MAZE[cell_up.y][cell_up.x] != W) {
+                        u32 distance = SquaredDistanceTo(cell_up, ghost->target_cell);
+                        if (distance < best_distance) {
+                            best_distance = distance;
+                            next_direction = DIRECTION_UP;
+                        }
+                    }
+
+                    if (MAZE[cell_down.y][cell_down.x] != W) {
+                        u32 distance = SquaredDistanceTo(cell_down, ghost->target_cell);
+                        if (distance < best_distance) {
+                            best_distance = distance;
+                            next_direction = DIRECTION_DOWN;
+                        }
+                    }
+
+                    if (MAZE[cell_right.y][cell_right.x] != W) {
+                        u32 distance = SquaredDistanceTo(cell_right, ghost->target_cell);
+                        if (distance < best_distance) {
+                            best_distance = distance;
+                            next_direction = DIRECTION_RIGHT;
+                        }
+                    }
+                } break;
+                case DIRECTION_DOWN: {
+                    if (MAZE[cell_left.y][cell_left.x] != W) {
+                        u32 distance = SquaredDistanceTo(cell_left, ghost->target_cell);
+                        if (distance < best_distance) {
+                            best_distance = distance;
+                            next_direction = DIRECTION_LEFT;
+                        }
+                    }
+
+                    if (MAZE[cell_down.y][cell_down.x] != W) {
+                        u32 distance = SquaredDistanceTo(cell_down, ghost->target_cell);
+                        if (distance < best_distance) {
+                            best_distance = distance;
+                            next_direction = DIRECTION_DOWN;
+                        }
+                    }
+
+                    if (MAZE[cell_right.y][cell_right.x] != W) {
+                        u32 distance = SquaredDistanceTo(cell_right, ghost->target_cell);
+                        if (distance < best_distance) {
+                            best_distance = distance;
+                            next_direction = DIRECTION_RIGHT;
+                        }
+                    }
+                } break;
+                case DIRECTION_UP: {
+                    if (MAZE[cell_up.y][cell_up.x] != W) {
+                        u32 distance = SquaredDistanceTo(cell_up, ghost->target_cell);
+                        if (distance < best_distance) {
+                            best_distance = distance;
+                            next_direction = DIRECTION_UP;
+                        }
+                    }
+
+                    if (MAZE[cell_left.y][cell_left.x] != W) {
+                        u32 distance = SquaredDistanceTo(cell_left, ghost->target_cell);
+                        if (distance < best_distance) {
+                            best_distance = distance;
+                            next_direction = DIRECTION_LEFT;
+                        }
+                    }
+
+                    if (MAZE[cell_right.y][cell_right.x] != W) {
+                        u32 distance = SquaredDistanceTo(cell_right, ghost->target_cell);
+                        if (distance < best_distance) {
+                            best_distance = distance;
+                            next_direction = DIRECTION_RIGHT;
+                        }
+                    }
+                } break;
+            }
+
+            ghost->current_direction = next_direction;
+            animation->base_sprite_id = ghost->base_sprite_ids[next_direction];
+        }
+        else if (is_in_center_of_cell && MAZE[next_cell.y][next_cell.x] == W) {
+            if (ghost->current_direction == DIRECTION_LEFT || ghost->current_direction == DIRECTION_RIGHT) {
+                if (MAZE[cell.y + 1][cell.x] != W) {
+                    ghost->current_direction = DIRECTION_DOWN;
+                    animation->base_sprite_id = ghost->base_sprite_ids[DIRECTION_DOWN];
+                }
+                else {
+                    ghost->current_direction = DIRECTION_UP;
+                    animation->base_sprite_id = ghost->base_sprite_ids[DIRECTION_UP];
                 }
             }
             else {
-                constexpr u32 GHOST_SPEED = 150;
-                f32 speed = GHOST_SPEED * world->delta_time;
-                switch (ghost->current_direction) {
-                    case DIRECTION_LEFT: {
-                        translate->x -= speed;
-                    } break;
-                    case DIRECTION_RIGHT: {
-                        translate->x += speed;
-                    } break;
-                    case DIRECTION_DOWN: {
-                        translate->y += speed;
-                    } break;
-                    case DIRECTION_UP: {
-                        translate->y -= speed;
-                    } break;
+                if (MAZE[cell.y][cell.x + 1] != W) {
+                    ghost->current_direction = DIRECTION_RIGHT;
+                    animation->base_sprite_id = ghost->base_sprite_ids[DIRECTION_RIGHT];
+                }
+                else {
+                    ghost->current_direction = DIRECTION_LEFT;
+                    animation->base_sprite_id = ghost->base_sprite_ids[DIRECTION_LEFT];
                 }
             }
+        }
+        
+        f32 speed = 150 * world->delta_time;
+        switch (ghost->current_direction) {
+            case DIRECTION_LEFT: { translate->x -= speed; } break;
+            case DIRECTION_RIGHT: { translate->x += speed; } break;
+            case DIRECTION_DOWN: { translate->y += speed; } break;
+            case DIRECTION_UP: { translate->y -= speed; } break;
         }
     }
 }
