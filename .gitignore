@@ -5,7 +5,6 @@ setup_msvc.bat
 
 # Folders
 bin/
-glad/
 obj/
 .vs/
 .vscode/

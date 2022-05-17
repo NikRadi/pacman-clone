@@ -43,14 +43,14 @@ ReverseDirection(u32 direction) {
 }
 
 static bool
-AreAlmostEquals(f32 a, f32 b) {
+AreRoughlyEquals(f32 a, f32 b) {
     constexpr f32 MAX_DIFFERENCE = 2.0f;
     return Abs(a - b) <= MAX_DIFFERENCE;
 }
 
 static bool
-AreAlmostEquals(Vector2 a, Vector2 b) {
-    return AreAlmostEquals(a.x, b.x) && AreAlmostEquals(a.y, b.y);
+AreRoughlyEquals(Vector2 a, Vector2 b) {
+    return AreRoughlyEquals(a.x, b.x) && AreRoughlyEquals(a.y, b.y);
 }
 
 static bool
@@ -181,7 +181,7 @@ UpdatePlayerInputSystem(World *world, PlayerInputSystem *system) {
     // The left hand side of the || operator is only true when the game starts
     // because Pacman is located in the middle of two cells. If it is removed
     // then the player cannot move when the game starts.
-    if (AreAlmostEquals(translate, cell_center) || (motion->direction == DIRECTION_NONE && system->next_direction != DIRECTION_NONE)) {
+    if (AreRoughlyEquals(translate, cell_center) || (motion->direction == DIRECTION_NONE && system->next_direction != DIRECTION_NONE)) {
         Vector2Int possible_next_cell = Move(cell, system->next_direction);
         if (!IsWall(possible_next_cell)) {
             motion->direction = system->next_direction;
@@ -264,7 +264,7 @@ UpdateGhostAiSystem(World *world, GhostAiSystem *system) {
                     ghost->is_state_init = true;
                     ghost->target_cell = ghost->scatter_target_cell;
                 }
-                
+
                 if (ghost->seconds_in_current_state >= 7.0f) {
                     ghost->state = STATE_CHASE;
                     ghost->is_state_init = false;
@@ -286,7 +286,7 @@ UpdateGhostAiSystem(World *world, GhostAiSystem *system) {
         // The left hand side of the || operator is only true when a ghost is
         // moving out of the game. It is required since they are not in the
         // center of the cell but in between two cells.
-        if (AreAlmostEquals(translate, cell_center) || (IsVertical(motion->direction) && AreAlmostEquals(translate.y, cell_center.y))) {
+        if (AreRoughlyEquals(translate, cell_center) || (IsVertical(motion->direction) && AreRoughlyEquals(translate.y, cell_center.y))) {
             Vector2Int next_cell = Move(cell, motion->direction);
             u32 next_direction = DIRECTION_NONE;
             if (IsWall(next_cell)) {
