@@ -23,8 +23,7 @@ GameInit(s32 window_width, s32 window_height) {
 
     Matrix4 projection = Orthographic(0.0f, w, 0.0f, h);
     SetMatrix4Uniform("projection", projection);
-//    Texture2D texture = LoadAndBindTexture("sprites\\spritesheet.bmp");
-    Texture2D texture = LoadAndBindTexture("C:\\Users\\nik\\source\\repos\\pacman-clone\\sprites\\spritesheet.bmp");
+    Texture2D texture = LoadAndBindTexture("sprites\\spritesheet.bmp");
 
     world = {};
     world.cell_size = cell_size;
@@ -101,6 +100,10 @@ GameInit(s32 window_width, s32 window_height) {
     animation_system.vertex_arrays[SPRITE_ID_CLYDE_DOWN2]        = MakeVertexArray(texture, { 341, 112, 16, 16 });
     animation_system.vertex_arrays[SPRITE_ID_GHOST_FRIGHTENED1]  = MakeVertexArray(texture, { 357, 64, 16, 16 });
     animation_system.vertex_arrays[SPRITE_ID_GHOST_FRIGHTENED2]  = MakeVertexArray(texture, { 373, 64, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_GHOST_EATEN_RIGHT]  = MakeVertexArray(texture, { 357, 80, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_GHOST_EATEN_LEFT]   = MakeVertexArray(texture, { 373, 80, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_GHOST_EATEN_UP]     = MakeVertexArray(texture, { 389, 80, 16, 16 });
+    animation_system.vertex_arrays[SPRITE_ID_GHOST_EATEN_DOWN]   = MakeVertexArray(texture, { 405, 80, 16, 16 });
 
     Sprite sprite;
     sprite.texture = texture;
@@ -115,9 +118,10 @@ GameInit(s32 window_width, s32 window_height) {
     sprite.vertex_array = MakeVertexArray(texture, { 1, 0, 224, 248 });
     world.sprites[maze] = sprite;
 
-    for (u32 row = 0; row < MAZE_HEIGHT; ++row) {
-        for (u32 col = 0; col < MAZE_WIDTH; ++col) {
-            if (MAZE[row][col] == d) {
+    for (s32 row = 0; row < MAZE_HEIGHT; ++row) {
+        for (s32 col = 0; col < MAZE_WIDTH; ++col) {
+            Vector2Int cell = { col, row };
+            if (IsCell(cell, d)) {
                 Entity small_dot = CreateEntity(&world);
                 world.entity_masks[small_dot] = MASK_TRANSFORM | MASK_SPRITE;
 
@@ -129,7 +133,7 @@ GameInit(s32 window_width, s32 window_height) {
                 sprite.vertex_array = MakeVertexArray(texture, { 227, 242, 4, 4 });
                 world.sprites[small_dot] = sprite;
             }
-            else if (MAZE[row][col] == D) {
+            else if (IsCell(cell, D)) {
                 Entity big_dot = CreateEntity(&world);
                 world.entity_masks[big_dot] = MASK_TRANSFORM | MASK_SPRITE | MASK_ANIMATION;
 
@@ -168,6 +172,10 @@ GameInit(s32 window_width, s32 window_height) {
     blinky_ghost->base_sprite_ids_for_direction[DIRECTION_LEFT] = SPRITE_ID_BLINKY_LEFT1;
     blinky_ghost->base_sprite_ids_for_direction[DIRECTION_DOWN] = SPRITE_ID_BLINKY_DOWN1;
     blinky_ghost->base_sprite_ids_for_direction[DIRECTION_RIGHT] = SPRITE_ID_BLINKY_RIGHT1;
+    blinky_ghost->current_base_sprite_ids_for_direction[DIRECTION_UP] = SPRITE_ID_BLINKY_UP1;
+    blinky_ghost->current_base_sprite_ids_for_direction[DIRECTION_LEFT] = SPRITE_ID_BLINKY_LEFT1;
+    blinky_ghost->current_base_sprite_ids_for_direction[DIRECTION_DOWN] = SPRITE_ID_BLINKY_DOWN1;
+    blinky_ghost->current_base_sprite_ids_for_direction[DIRECTION_RIGHT] = SPRITE_ID_BLINKY_RIGHT1;
 
 
     constexpr Vector2 PINKY_STARTING_CELL = { 14.0f, 14.5f };
@@ -185,17 +193,53 @@ GameInit(s32 window_width, s32 window_height) {
     pinky_ghost->base_sprite_ids_for_direction[DIRECTION_LEFT] = SPRITE_ID_PINKY_LEFT1;
     pinky_ghost->base_sprite_ids_for_direction[DIRECTION_DOWN] = SPRITE_ID_PINKY_DOWN1;
     pinky_ghost->base_sprite_ids_for_direction[DIRECTION_RIGHT] = SPRITE_ID_PINKY_RIGHT1;
+    pinky_ghost->current_base_sprite_ids_for_direction[DIRECTION_UP] = SPRITE_ID_PINKY_UP1;
+    pinky_ghost->current_base_sprite_ids_for_direction[DIRECTION_LEFT] = SPRITE_ID_PINKY_LEFT1;
+    pinky_ghost->current_base_sprite_ids_for_direction[DIRECTION_DOWN] = SPRITE_ID_PINKY_DOWN1;
+    pinky_ghost->current_base_sprite_ids_for_direction[DIRECTION_RIGHT] = SPRITE_ID_PINKY_RIGHT1;
 
 
-//    constexpr Vector2 INKY_STARTING_CELL = { 12.0f, 14.5f };
-//    transform.translate = cell_size * INKY_STARTING_CELL;
-//    sprite.vertex_array = animation_system.vertex_arrays[SPRITE_ID_INKY_DOWN1];
-//    CreateGhost(&world, transform, sprite, SPRITE_ID_INKY_DOWN1);
-//
-//    constexpr Vector2 CLYDE_STARTING_CELL = { 16.0f, 14.5f };
-//    transform.translate = cell_size * CLYDE_STARTING_CELL;
-//    sprite.vertex_array = animation_system.vertex_arrays[SPRITE_ID_CLYDE_DOWN1];
-//    CreateGhost(&world, transform, sprite, SPRITE_ID_CLYDE_DOWN1);
+    constexpr Vector2 INKY_STARTING_CELL = { 12.0f, 14.5f };
+    transform.translate = cell_size * PINKY_STARTING_CELL;
+    sprite.vertex_array = animation_system.vertex_arrays[SPRITE_ID_INKY_DOWN1];
+    Entity inky = CreateGhost(&world, transform, sprite, SPRITE_ID_INKY_DOWN1);
+
+    world.motions[inky].direction = DIRECTION_UP;
+    Ghost *inky_ghost = &ghost_ai_system.ghosts[GHOST_INKY];
+    player_input_system.ghosts[GHOST_INKY] = inky_ghost;
+    inky_ghost->id = inky;
+    inky_ghost->state = STATE_SCATTER;
+    inky_ghost->scatter_target_cell = { 28, 32 };
+    inky_ghost->base_sprite_ids_for_direction[DIRECTION_UP] = SPRITE_ID_INKY_UP1;
+    inky_ghost->base_sprite_ids_for_direction[DIRECTION_LEFT] = SPRITE_ID_INKY_LEFT1;
+    inky_ghost->base_sprite_ids_for_direction[DIRECTION_DOWN] = SPRITE_ID_INKY_DOWN1;
+    inky_ghost->base_sprite_ids_for_direction[DIRECTION_RIGHT] = SPRITE_ID_INKY_RIGHT1;
+    inky_ghost->current_base_sprite_ids_for_direction[DIRECTION_UP] = SPRITE_ID_INKY_UP1;
+    inky_ghost->current_base_sprite_ids_for_direction[DIRECTION_LEFT] = SPRITE_ID_INKY_LEFT1;
+    inky_ghost->current_base_sprite_ids_for_direction[DIRECTION_DOWN] = SPRITE_ID_INKY_DOWN1;
+    inky_ghost->current_base_sprite_ids_for_direction[DIRECTION_RIGHT] = SPRITE_ID_INKY_RIGHT1;
+
+
+    constexpr Vector2 CLYDE_STARTING_CELL = { 16.0f, 14.5f };
+    transform.translate = cell_size * PINKY_STARTING_CELL;
+    sprite.vertex_array = animation_system.vertex_arrays[SPRITE_ID_CLYDE_DOWN1];
+    Entity clyde = CreateGhost(&world, transform, sprite, SPRITE_ID_CLYDE_DOWN1);
+
+    world.motions[clyde].direction = DIRECTION_UP;
+    Ghost *clyde_ghost = &ghost_ai_system.ghosts[GHOST_CLYDE];
+    player_input_system.ghosts[GHOST_CLYDE] = clyde_ghost;
+    clyde_ghost->id = clyde;
+    clyde_ghost->state = STATE_SCATTER;
+    clyde_ghost->scatter_target_cell = { 0, 32 };
+    clyde_ghost->base_sprite_ids_for_direction[DIRECTION_UP] = SPRITE_ID_CLYDE_UP1;
+    clyde_ghost->base_sprite_ids_for_direction[DIRECTION_LEFT] = SPRITE_ID_CLYDE_LEFT1;
+    clyde_ghost->base_sprite_ids_for_direction[DIRECTION_DOWN] = SPRITE_ID_CLYDE_DOWN1;
+    clyde_ghost->base_sprite_ids_for_direction[DIRECTION_RIGHT] = SPRITE_ID_CLYDE_RIGHT1;
+    clyde_ghost->current_base_sprite_ids_for_direction[DIRECTION_UP] = SPRITE_ID_CLYDE_UP1;
+    clyde_ghost->current_base_sprite_ids_for_direction[DIRECTION_LEFT] = SPRITE_ID_CLYDE_LEFT1;
+    clyde_ghost->current_base_sprite_ids_for_direction[DIRECTION_DOWN] = SPRITE_ID_CLYDE_DOWN1;
+    clyde_ghost->current_base_sprite_ids_for_direction[DIRECTION_RIGHT] = SPRITE_ID_CLYDE_RIGHT1;
+
 
     constexpr Vector2 PACMAN_STARTING_CELL = { 14.0f, 23.5f };
     Entity pacman = CreateEntity(&world);

@@ -44,7 +44,7 @@ ReverseDirection(u32 direction) {
 
 static bool
 AreRoughlyEquals(f32 a, f32 b) {
-    constexpr f32 MAX_DIFFERENCE = 2.0f;
+    constexpr f32 MAX_DIFFERENCE = 5.0f;
     return Abs(a - b) <= MAX_DIFFERENCE;
 }
 
@@ -85,13 +85,15 @@ UpdateAnimationSystem(World *world, AnimationSystem *system) {
             if (!animation->is_looped && animation->is_reversed) {
                 animation->is_finished = true;
             }
-            else if (animation->is_reversed) {
-                animation->current_sprite_id -= 1;
-                animation->is_reversed = animation->current_sprite_id != 0;
-            }
-            else {
-                animation->current_sprite_id += 1;
-                animation->is_reversed = animation->current_sprite_id == animation->num_frames - 1;
+            else if (animation->num_frames > 1) {
+                if (animation->is_reversed) {
+                    animation->current_sprite_id -= 1;
+                    animation->is_reversed = animation->current_sprite_id != 0;
+                }
+                else {
+                    animation->current_sprite_id += 1;
+                    animation->is_reversed = animation->current_sprite_id == animation->num_frames - 1;
+                }
             }
         }
     }
@@ -197,21 +199,22 @@ UpdatePlayerInputSystem(World *world, PlayerInputSystem *system) {
         }
     }
 
-    u8 cell_content = MAZE[cell.y][cell.x];
-    if (cell_content == d || cell_content == D) {
+    if (IsCell(cell, d) || IsCell(cell, D)) {
         for (u32 entity = 0; entity < MAX_ENTITIES; ++entity) {
             Vector2 entity_translate = world->transforms[entity].translate;
             Vector2Int entity_cell = ToCellCoordinates(entity_translate, world->cell_size);
             // TODO: Ensure that this entity is a dot. We might remove a ghost or pacman
             if (entity_cell == cell) {
                 world->entity_masks[entity] = MASK_NONE;
-                break;
-            }
-        }
+                if (IsCell(cell, D)) {
+                    for (u32 i = 0; i < GHOST_COUNT; ++i) {
+                        system->ghosts[i]->state = STATE_FRIGHTENED;
+                        system->ghosts[i]->is_state_init = false;
+                    }
+                }
 
-        if (cell_content == D) {
-            for (u32 i = 0; i < GHOST_COUNT; ++i) {
-                system->ghosts[i]->state = STATE_FRIGHTENED;
+                SetEmpty(cell);
+                break;
             }
         }
     }
@@ -221,8 +224,9 @@ UpdatePlayerInputSystem(World *world, PlayerInputSystem *system) {
         Vector2 ghost_translate = world->transforms[ghost->id].translate;
         Vector2Int ghost_cell = ToCellCoordinates(ghost_translate, world->cell_size);
         if (ghost_cell == cell) {
-            if (ghost->state == STATE_FRIGHTENED) {
+            if (ghost->state == STATE_FRIGHTENED || ghost->state == STATE_EATEN) {
                 ghost->state = STATE_EATEN;
+                ghost->is_state_init = false;
             }
             else {
                 animation->base_sprite_id = SPRITE_ID_PACMAN_DEAD1;
@@ -232,10 +236,13 @@ UpdatePlayerInputSystem(World *world, PlayerInputSystem *system) {
                 animation->seconds_between_frames = 0.1f;
                 system->is_dead = true;
                 world->entity_masks[system->pacman] &= ~MASK_MOTION;
+                world->entity_masks[system->pacman] |= MASK_ANIMATION;
                 for (u32 j = 0; j < GHOST_COUNT; ++j) {
                     world->entity_masks[system->ghosts[j]->id] &= ~MASK_TRANSFORM;
                 }
             }
+
+            break;
         }
     }
 }
@@ -249,11 +256,26 @@ UpdateGhostAiSystem(World *world, GhostAiSystem *system) {
             continue;
         }
 
+        Animation *animation = &world->animations[ghost->id];
+        Motion *motion = &world->motions[ghost->id];
         ghost->seconds_in_current_state += world->delta_time;
+
+        Vector2 translate = world->transforms[ghost->id].translate;
+        Vector2Int cell = ToCellCoordinates(translate, world->cell_size);
+        if (!ghost->is_state_init) {
+            ghost->seconds_in_current_state = 0.0f;
+        }
+
         switch (ghost->state) {
             case STATE_CHASE: {
                 Vector2 pacman_translate = world->transforms[system->pacman].translate;
                 ghost->target_cell = ToCellCoordinates(pacman_translate, world->cell_size);
+                if (ghost->seconds_in_current_state >= 20.0f) {
+                    ghost->state = STATE_SCATTER;
+                    ghost->is_state_init = false;
+                    motion->speed = 150;
+                }
+
                 if (ghost->seconds_in_current_state >= 20.0f) {
                     ghost->state = STATE_SCATTER;
                     ghost->is_state_init = false;
@@ -263,6 +285,7 @@ UpdateGhostAiSystem(World *world, GhostAiSystem *system) {
                 if (!ghost->is_state_init) {
                     ghost->is_state_init = true;
                     ghost->target_cell = ghost->scatter_target_cell;
+                    motion->speed = 150;
                 }
 
                 if (ghost->seconds_in_current_state >= 7.0f) {
@@ -271,18 +294,60 @@ UpdateGhostAiSystem(World *world, GhostAiSystem *system) {
                 }
             } break;
             case STATE_FRIGHTENED: {
+                if (!ghost->is_state_init) {
+                    ghost->is_state_init = true;
+                    ghost->current_base_sprite_ids_for_direction[0] = SPRITE_ID_GHOST_FRIGHTENED1;
+                    ghost->current_base_sprite_ids_for_direction[1] = SPRITE_ID_GHOST_FRIGHTENED1;
+                    ghost->current_base_sprite_ids_for_direction[2] = SPRITE_ID_GHOST_FRIGHTENED1;
+                    ghost->current_base_sprite_ids_for_direction[3] = SPRITE_ID_GHOST_FRIGHTENED1;
+                    animation->base_sprite_id = SPRITE_ID_GHOST_FRIGHTENED1;
+                    motion->direction = ReverseDirection(motion->direction);
+                    motion->speed = 150;
+                }
 
+                if (ghost->seconds_in_current_state >= 10.0f) {
+                    ghost->state = STATE_CHASE;
+                    ghost->is_state_init = false;
+                    ghost->current_base_sprite_ids_for_direction[DIRECTION_LEFT] = ghost->base_sprite_ids_for_direction[DIRECTION_LEFT];
+                    ghost->current_base_sprite_ids_for_direction[DIRECTION_RIGHT] = ghost->base_sprite_ids_for_direction[DIRECTION_RIGHT];
+                    ghost->current_base_sprite_ids_for_direction[DIRECTION_DOWN] = ghost->base_sprite_ids_for_direction[DIRECTION_DOWN];
+                    ghost->current_base_sprite_ids_for_direction[DIRECTION_UP] = ghost->base_sprite_ids_for_direction[DIRECTION_UP];
+                    animation->current_sprite_id = 0;
+                    animation->base_sprite_id = ghost->current_base_sprite_ids_for_direction[motion->direction];
+                    animation->num_frames = 2;
+                    animation->current_sprite_id = 0;
+                }
             } break;
             case STATE_EATEN: {
+                if (!ghost->is_state_init) {
+                    ghost->is_state_init = true;
+                    ghost->current_base_sprite_ids_for_direction[DIRECTION_LEFT] = SPRITE_ID_GHOST_EATEN_LEFT;
+                    ghost->current_base_sprite_ids_for_direction[DIRECTION_RIGHT] = SPRITE_ID_GHOST_EATEN_RIGHT;
+                    ghost->current_base_sprite_ids_for_direction[DIRECTION_UP] = SPRITE_ID_GHOST_EATEN_UP;
+                    ghost->current_base_sprite_ids_for_direction[DIRECTION_DOWN] = SPRITE_ID_GHOST_EATEN_DOWN;
+                    animation->base_sprite_id = ghost->current_base_sprite_ids_for_direction[motion->direction];
+                    animation->num_frames = 1;
+                    animation->current_sprite_id = 0;
+                    ghost->target_cell = { 14, 11 };
+                    motion->speed = 300;
+                }
 
+                if (cell == ghost->target_cell) {
+                    ghost->state = STATE_SCATTER;
+                    ghost->is_state_init = false;
+                    ghost->current_base_sprite_ids_for_direction[DIRECTION_LEFT] = ghost->base_sprite_ids_for_direction[DIRECTION_LEFT];
+                    ghost->current_base_sprite_ids_for_direction[DIRECTION_RIGHT] = ghost->base_sprite_ids_for_direction[DIRECTION_RIGHT];
+                    ghost->current_base_sprite_ids_for_direction[DIRECTION_DOWN] = ghost->base_sprite_ids_for_direction[DIRECTION_DOWN];
+                    ghost->current_base_sprite_ids_for_direction[DIRECTION_UP] = ghost->base_sprite_ids_for_direction[DIRECTION_UP];
+                    animation->base_sprite_id = ghost->current_base_sprite_ids_for_direction[motion->direction];
+                    animation->num_frames = 2;
+                    animation->current_sprite_id = 0;
+                }
             } break;
         }
 
-        Motion *motion = &world->motions[ghost->id];
-
-        Vector2 translate = world->transforms[ghost->id].translate;
-        Vector2Int cell = ToCellCoordinates(translate, world->cell_size);
         Vector2 cell_center = cell * world->cell_size + world->half_cell_size;
+
         // The left hand side of the || operator is only true when a ghost is
         // moving out of the game. It is required since they are not in the
         // center of the cell but in between two cells.
@@ -320,8 +385,7 @@ UpdateGhostAiSystem(World *world, GhostAiSystem *system) {
 
             if (next_direction != DIRECTION_NONE) {
                 motion->direction = next_direction;
-                Animation *animation = &world->animations[ghost->id];
-                animation->base_sprite_id = ghost->base_sprite_ids_for_direction[next_direction];
+                animation->base_sprite_id = ghost->current_base_sprite_ids_for_direction[next_direction];
             }
         }
     }

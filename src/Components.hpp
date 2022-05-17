@@ -48,7 +48,8 @@ struct Ghost {
     u32 state;
     u32 is_state_init;
     f32 seconds_in_current_state;
-    u8 base_sprite_ids_for_direction[4]; // 4, one for each direction // 4, one for each direction
+    u8 base_sprite_ids_for_direction[4]; // 4, one for each direction
+    u8 current_base_sprite_ids_for_direction[4]; // One for unique movement sprites, one for current movement sprites
     Vector2Int target_cell;
     Vector2Int scatter_target_cell;
     Vector2Int last_intersection_cell;
