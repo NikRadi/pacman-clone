@@ -22,6 +22,17 @@ enum {
     SPRITE_ID_PACMAN_DOWN1,
     SPRITE_ID_PACMAN_DOWN2,
     SPRITE_ID_PACMAN_DOWN3,
+    SPRITE_ID_PACMAN_DEAD1,
+    SPRITE_ID_PACMAN_DEAD2,
+    SPRITE_ID_PACMAN_DEAD3,
+    SPRITE_ID_PACMAN_DEAD4,
+    SPRITE_ID_PACMAN_DEAD5,
+    SPRITE_ID_PACMAN_DEAD6,
+    SPRITE_ID_PACMAN_DEAD7,
+    SPRITE_ID_PACMAN_DEAD8,
+    SPRITE_ID_PACMAN_DEAD9,
+    SPRITE_ID_PACMAN_DEAD10,
+    SPRITE_ID_PACMAN_DEAD11,
     SPRITE_ID_BLINKY_RIGHT1,
     SPRITE_ID_BLINKY_RIGHT2,
     SPRITE_ID_BLINKY_LEFT1,
@@ -60,69 +71,48 @@ enum {
     SPRITE_ID_COUNT
 };
 
+// Do not change the order of these.
+// They are used in UpdateGhostAiSystem in the 'IsIntersection' part.
 enum {
-    DIRECTION_LEFT,
-    DIRECTION_RIGHT,
-    DIRECTION_DOWN,
     DIRECTION_UP,
+    DIRECTION_LEFT,
+    DIRECTION_DOWN,
+    DIRECTION_RIGHT,
     DIRECTION_NONE
-};
-
-enum {
-    GHOST_BLINKY,
-    GHOST_PINKY,
-    GHOST_INKY,
-    GHOST_CLYDE,
-
-    GHOST_COUNT
 };
 
 enum {
     STATE_CHASE,
     STATE_SCATTER,
     STATE_FRIGHTENED,
-    STATE_EATEN,
-
-    STATE_COUNT
+    STATE_EATEN
 };
 
-// This is technically a component, but since
-// we know there are always 4 ghosts we add 4
-// Ghost components to the GhostMovementSystem
-struct Ghost {
-    Entity id;
-    Vector2Int target_cell;
-    u8 state;
-    u8 has_reached_target_cell;
-    u8 current_direction;
-    u8 base_sprite_ids[4];
-    u32 seconds_in_state[STATE_COUNT];
-    f32 current_seconds;
-    Vector2Int last_intersection_cell;
+enum {
+    GHOST_BLINKY,
+    GHOST_PINKY,
+//    GHOST_INKY,
+//    GHOST_CLYDE,
 
-
-    // Each ghost scatters around different areas.
-    // We define the area with 4 cells.
-    u8 scatter_cell_idx;
-    Vector2Int scatter_cell;
+    GHOST_COUNT
 };
 
 struct AnimationSystem {
     VertexArray vertex_arrays[SPRITE_ID_COUNT];
 };
 
-
-// No need to make a 'PacmanMovementComponent'.
+// No need to make a 'PlayerMovementComponent'.
 // We just store the needed information here.
-struct PacmanMovementSystem {
+struct PlayerInputSystem {
     Input input;
     Entity pacman;
-    u32 current_direction;
     u32 next_direction;
+    u8 base_sprite_ids[4]; // 4, one for each direction
     Ghost *ghosts[GHOST_COUNT];
+    bool is_dead;
 };
 
-struct GhostMovementSystem {
+struct GhostAiSystem {
     Entity pacman;
     Ghost ghosts[GHOST_COUNT];
 };
@@ -135,9 +125,12 @@ void
 UpdateRenderSystem(World *world);
 
 void
-UpdatePacmanMovementSystem(World *world, PacmanMovementSystem *system);
+UpdateMovementSystem(World *world);
 
 void
-UpdateGhostMovementSystem(World *world, GhostMovementSystem *system);
+UpdatePlayerInputSystem(World *world, PlayerInputSystem *system);
+
+void
+UpdateGhostAiSystem(World *world, GhostAiSystem *system);
 
 #endif // PACMAN_SYSTEMS_HPP

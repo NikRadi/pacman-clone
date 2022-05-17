@@ -6,8 +6,8 @@
 
 static World world;
 static AnimationSystem animation_system;
-static PacmanMovementSystem pacman_movement_system;
-static GhostMovementSystem ghost_movement_system;
+static PlayerInputSystem player_input_system;
+static GhostAiSystem ghost_ai_system;
 
 
 void
@@ -27,12 +27,14 @@ GameInit(s32 window_width, s32 window_height) {
     Texture2D texture = LoadAndBindTexture("C:\\Users\\nik\\source\\repos\\pacman-clone\\sprites\\spritesheet.bmp");
 
     world = {};
-    ghost_movement_system = {};
     world.cell_size = cell_size;
     world.half_cell_size = half_cell_size;
     world.window_size = { window_width, window_height };
-    pacman_movement_system.current_direction = DIRECTION_NONE;
-    pacman_movement_system.next_direction = DIRECTION_NONE;
+    player_input_system.next_direction = DIRECTION_NONE;
+    player_input_system.base_sprite_ids[DIRECTION_LEFT] = SPRITE_ID_PACMAN_LEFT1;
+    player_input_system.base_sprite_ids[DIRECTION_RIGHT] = SPRITE_ID_PACMAN_RIGHT1;
+    player_input_system.base_sprite_ids[DIRECTION_DOWN] = SPRITE_ID_PACMAN_DOWN1;
+    player_input_system.base_sprite_ids[DIRECTION_UP] = SPRITE_ID_PACMAN_UP1;
 
     // These constexpr variables are defined here because they are used later also
     constexpr RectangleInt BIG_DOT_RECT = { 233, 240, 8, 8 };
@@ -52,6 +54,19 @@ GameInit(s32 window_width, s32 window_height) {
     animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN2]       = MakeVertexArray(texture, { 245, 48, 15, 15 });
     animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN3]       = MakeVertexArray(texture, { 261, 48, 15, 15 });
     animation_system.vertex_arrays[SPRITE_ID_PACMAN_DOWN3]       = MakeVertexArray(texture, { 261, 48, 15, 15 });
+
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DEAD1]       = MakeVertexArray(texture, { 276, 0, 17, 17 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DEAD2]       = MakeVertexArray(texture, { 292, 0, 17, 17 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DEAD3]       = MakeVertexArray(texture, { 308, 0, 17, 17 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DEAD4]       = MakeVertexArray(texture, { 324, 0, 17, 17 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DEAD5]       = MakeVertexArray(texture, { 340, 0, 17, 17 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DEAD6]       = MakeVertexArray(texture, { 356, 0, 17, 17 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DEAD7]       = MakeVertexArray(texture, { 372, 0, 17, 17 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DEAD8]       = MakeVertexArray(texture, { 388, 0, 17, 17 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DEAD9]       = MakeVertexArray(texture, { 404, 0, 17, 17 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DEAD10]      = MakeVertexArray(texture, { 420, 0, 17, 17 });
+    animation_system.vertex_arrays[SPRITE_ID_PACMAN_DEAD11]      = MakeVertexArray(texture, { 436, 0, 17, 17 });
+
     animation_system.vertex_arrays[SPRITE_ID_BLINKY_RIGHT1]      = MakeVertexArray(texture, { 229, 64, 16, 16 });
     animation_system.vertex_arrays[SPRITE_ID_BLINKY_RIGHT2]      = MakeVertexArray(texture, { 245, 64, 16, 16 });
     animation_system.vertex_arrays[SPRITE_ID_BLINKY_LEFT1]       = MakeVertexArray(texture, { 261, 64, 16, 16 });
@@ -130,6 +145,7 @@ GameInit(s32 window_width, s32 window_height) {
                 big_dot_animation->base_sprite_id = SPRITE_ID_BIG_DOT1;
                 big_dot_animation->num_frames = 2;
                 big_dot_animation->seconds_between_frames = 0.2f;
+                big_dot_animation->is_looped = true;
             }
         }
     }
@@ -142,18 +158,16 @@ GameInit(s32 window_width, s32 window_height) {
     sprite.vertex_array = animation_system.vertex_arrays[SPRITE_ID_BLINKY_LEFT1];
     Entity blinky = CreateGhost(&world, transform, sprite, SPRITE_ID_BLINKY_LEFT1);
 
-    Ghost *blinky_ghost = &ghost_movement_system.ghosts[GHOST_BLINKY];
-    pacman_movement_system.ghosts[GHOST_BLINKY] = blinky_ghost;
+    world.motions[blinky].direction = DIRECTION_LEFT;
+    Ghost *blinky_ghost = &ghost_ai_system.ghosts[GHOST_BLINKY];
+    player_input_system.ghosts[GHOST_BLINKY] = blinky_ghost;
     blinky_ghost->id = blinky;
     blinky_ghost->state = STATE_SCATTER;
-    blinky_ghost->current_direction = DIRECTION_LEFT;
-    blinky_ghost->scatter_cell = { 26, -3 };
-    blinky_ghost->base_sprite_ids[DIRECTION_LEFT] = SPRITE_ID_BLINKY_LEFT1;
-    blinky_ghost->base_sprite_ids[DIRECTION_RIGHT] = SPRITE_ID_BLINKY_RIGHT1;
-    blinky_ghost->base_sprite_ids[DIRECTION_DOWN] = SPRITE_ID_BLINKY_DOWN1;
-    blinky_ghost->base_sprite_ids[DIRECTION_UP] = SPRITE_ID_BLINKY_UP1;
-    blinky_ghost->seconds_in_state[STATE_SCATTER] = 7;
-    blinky_ghost->seconds_in_state[STATE_CHASE] = 20;
+    blinky_ghost->scatter_target_cell = { 26, -3 };
+    blinky_ghost->base_sprite_ids_for_direction[DIRECTION_UP] = SPRITE_ID_BLINKY_UP1;
+    blinky_ghost->base_sprite_ids_for_direction[DIRECTION_LEFT] = SPRITE_ID_BLINKY_LEFT1;
+    blinky_ghost->base_sprite_ids_for_direction[DIRECTION_DOWN] = SPRITE_ID_BLINKY_DOWN1;
+    blinky_ghost->base_sprite_ids_for_direction[DIRECTION_RIGHT] = SPRITE_ID_BLINKY_RIGHT1;
 
 
     constexpr Vector2 PINKY_STARTING_CELL = { 14.0f, 14.5f };
@@ -161,35 +175,34 @@ GameInit(s32 window_width, s32 window_height) {
     sprite.vertex_array = animation_system.vertex_arrays[SPRITE_ID_PINKY_UP1];
     Entity pinky = CreateGhost(&world, transform, sprite, SPRITE_ID_PINKY_UP1);
 
-    Ghost *pinky_ghost = &ghost_movement_system.ghosts[GHOST_PINKY];
-    pacman_movement_system.ghosts[GHOST_PINKY] = pinky_ghost;
+    world.motions[pinky].direction = DIRECTION_UP;
+    Ghost *pinky_ghost = &ghost_ai_system.ghosts[GHOST_PINKY];
+    player_input_system.ghosts[GHOST_PINKY] = pinky_ghost;
     pinky_ghost->id = pinky;
     pinky_ghost->state = STATE_SCATTER;
-    pinky_ghost->current_direction = DIRECTION_UP;
-    pinky_ghost->scatter_cell = { 3, -3 };
-    pinky_ghost->base_sprite_ids[DIRECTION_LEFT] = SPRITE_ID_PINKY_LEFT1;
-    pinky_ghost->base_sprite_ids[DIRECTION_RIGHT] = SPRITE_ID_PINKY_RIGHT1;
-    pinky_ghost->base_sprite_ids[DIRECTION_DOWN] = SPRITE_ID_PINKY_DOWN1;
-    pinky_ghost->base_sprite_ids[DIRECTION_UP] = SPRITE_ID_PINKY_UP1;
-    pinky_ghost->seconds_in_state[STATE_SCATTER] = 15;
-    pinky_ghost->seconds_in_state[STATE_CHASE] = 20;
+    pinky_ghost->scatter_target_cell = { 3, -3 };
+    pinky_ghost->base_sprite_ids_for_direction[DIRECTION_UP] = SPRITE_ID_PINKY_UP1;
+    pinky_ghost->base_sprite_ids_for_direction[DIRECTION_LEFT] = SPRITE_ID_PINKY_LEFT1;
+    pinky_ghost->base_sprite_ids_for_direction[DIRECTION_DOWN] = SPRITE_ID_PINKY_DOWN1;
+    pinky_ghost->base_sprite_ids_for_direction[DIRECTION_RIGHT] = SPRITE_ID_PINKY_RIGHT1;
 
-    constexpr Vector2 INKY_STARTING_CELL = { 12.0f, 14.5f };
-    transform.translate = cell_size * INKY_STARTING_CELL;
-    sprite.vertex_array = animation_system.vertex_arrays[SPRITE_ID_INKY_DOWN1];
-    CreateGhost(&world, transform, sprite, SPRITE_ID_INKY_DOWN1);
 
-    constexpr Vector2 CLYDE_STARTING_CELL = { 16.0f, 14.5f };
-    transform.translate = cell_size * CLYDE_STARTING_CELL;
-    sprite.vertex_array = animation_system.vertex_arrays[SPRITE_ID_CLYDE_DOWN1];
-    CreateGhost(&world, transform, sprite, SPRITE_ID_CLYDE_DOWN1);
+//    constexpr Vector2 INKY_STARTING_CELL = { 12.0f, 14.5f };
+//    transform.translate = cell_size * INKY_STARTING_CELL;
+//    sprite.vertex_array = animation_system.vertex_arrays[SPRITE_ID_INKY_DOWN1];
+//    CreateGhost(&world, transform, sprite, SPRITE_ID_INKY_DOWN1);
+//
+//    constexpr Vector2 CLYDE_STARTING_CELL = { 16.0f, 14.5f };
+//    transform.translate = cell_size * CLYDE_STARTING_CELL;
+//    sprite.vertex_array = animation_system.vertex_arrays[SPRITE_ID_CLYDE_DOWN1];
+//    CreateGhost(&world, transform, sprite, SPRITE_ID_CLYDE_DOWN1);
 
     constexpr Vector2 PACMAN_STARTING_CELL = { 14.0f, 23.5f };
     Entity pacman = CreateEntity(&world);
-    // Pacmans animation system is enabled when he starts moving
-    world.entity_masks[pacman] = MASK_TRANSFORM | MASK_SPRITE;
-    pacman_movement_system.pacman = pacman;
-    ghost_movement_system.pacman = pacman;
+    // MASK_ANIMATION is added when PacMan starts moving
+    world.entity_masks[pacman] = MASK_TRANSFORM | MASK_SPRITE | MASK_MOTION;
+    player_input_system.pacman = pacman;
+    ghost_ai_system.pacman = pacman;
 
     transform.translate = cell_size * PACMAN_STARTING_CELL;
     world.transforms[pacman] = transform;
@@ -200,15 +213,21 @@ GameInit(s32 window_width, s32 window_height) {
     pacman_animation->base_sprite_id = SPRITE_ID_PACMAN_RIGHT1;
     pacman_animation->num_frames = 3;
     pacman_animation->seconds_between_frames = 0.05f;
+    pacman_animation->is_looped = true;
+
+    Motion *pacman_motion = &world.motions[pacman];
+    pacman_motion->speed = 150;
+    pacman_motion->direction = DIRECTION_NONE;
 }
 
 void
 GameUpdate(f32 delta_time, Input input) {
     world.delta_time = delta_time;
-    pacman_movement_system.input = input;
+    player_input_system.input = input;
 
-    UpdatePacmanMovementSystem(&world, &pacman_movement_system);
-    UpdateGhostMovementSystem(&world, &ghost_movement_system);
+    UpdatePlayerInputSystem(&world, &player_input_system);
+    UpdateGhostAiSystem(&world, &ghost_ai_system);
+    UpdateMovementSystem(&world);
     UpdateAnimationSystem(&world, &animation_system);
     UpdateRenderSystem(&world);
 }

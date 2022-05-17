@@ -1,5 +1,6 @@
 #ifndef PACMAN_MAZE_HPP
 #define PACMAN_MAZE_HPP
+#include "Math.hpp"
 
 
 enum {
@@ -50,7 +51,6 @@ constexpr static u8 MAZE[MAZE_HEIGHT][MAZE_WIDTH] = {
 
 // Used for ghost movement
 constexpr static u8 IS_INTERSECTION[MAZE_HEIGHT][MAZE_WIDTH] = {
-// These numbers just help identify the cell easier
 //  1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,
@@ -84,5 +84,12 @@ constexpr static u8 IS_INTERSECTION[MAZE_HEIGHT][MAZE_WIDTH] = {
     0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 };
+
+
+bool
+IsWall(Vector2Int cell);
+
+bool
+IsIntersection(Vector2Int cell);
 
 #endif // PACMAN_MAZE_HPP

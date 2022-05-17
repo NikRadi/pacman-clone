@@ -21,6 +21,7 @@ struct World {
     Transform transforms[MAX_ENTITIES];
     Sprite sprites[MAX_ENTITIES];
     Animation animations[MAX_ENTITIES];
+    Motion motions[MAX_ENTITIES];
 };
 
 

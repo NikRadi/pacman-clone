@@ -47,7 +47,13 @@ Vector2
 operator+(Vector2 a, Vector2 b);
 
 Vector2
+operator-(Vector2 a, Vector2 b);
+
+Vector2
 operator*(Vector2 a, Vector2 b);
+
+bool
+operator==(Vector2 a, Vector2 b);
 
 Vector2
 operator*(Vector2Int a, Vector2 b);
